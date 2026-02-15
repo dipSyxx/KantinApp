@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum Role {
+  STUDENT
+  CANTEEN_ADMIN
+  SCHOOL_ADMIN
+}
+
+enum MenuStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum Category {
+  MAIN
+  VEG
+  SOUP
+  DESSERT
+  OTHER
+}
+
+enum ItemStatus {
+  ACTIVE
+  CHANGED
+  SOLD_OUT
+}
+
+// ─── Models ──────────────────────────────────────────────
+
+model User {
+  id         String   @id @default(cuid())
+  name       String
+  email      String   @unique
+  password   String
+  externalId String?  @unique
+  role       Role     @default(STUDENT)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  votes          Vote[]
+  refreshTokens  RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model WeekMenu {
+  id          String     @id @default(cuid())
+  year        Int
+  weekNumber  Int
+  status      MenuStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  days MenuDay[]
+
+  @@unique([year, weekNumber])
+  @@map("week_menus")
+}
+
+model MenuDay {
+  id         String   @id @default(cuid())
+  date       DateTime @unique @db.Date
+  weekMenuId String
+  isOpen     Boolean  @default(true)
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  weekMenu WeekMenu   @relation(fields: [weekMenuId], references: [id], onDelete: Cascade)
+  items    MenuItem[]
+
+  @@map("menu_days")
+}
+
+model Dish {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String?
+  allergens   String[] @default([])
+  tags        String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  menuItems MenuItem[]
+
+  @@map("dishes")
+}
+
+model MenuItem {
+  id        String     @id @default(cuid())
+  menuDayId String
+  dishId    String
+  price     Int        @default(50)
+  category  Category   @default(MAIN)
+  status    ItemStatus @default(ACTIVE)
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  menuDay MenuDay @relation(fields: [menuDayId], references: [id], onDelete: Cascade)
+  dish    Dish    @relation(fields: [dishId], references: [id])
+  votes   Vote[]
+
+  @@map("menu_items")
+}
+
+model Vote {
+  id         String   @id @default(cuid())
+  menuItemId String
+  userId     String
+  value      Int      // -1 = bad, 0 = ok, +1 = good
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([menuItemId, userId])
+  @@map("votes")
+}
