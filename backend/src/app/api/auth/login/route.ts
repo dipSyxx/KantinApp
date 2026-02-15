@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     accessToken,
     refreshToken: refreshTokenValue,
     user: {
@@ -59,4 +59,23 @@ export async function POST(request: NextRequest) {
       role: user.role,
     },
   });
+
+  // Set httpOnly cookie for admin web UI authentication
+  response.cookies.set("admin_token", accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 15, // 15 minutes (matches access token expiry)
+  });
+
+  response.cookies.set("admin_refresh", refreshTokenValue, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+  });
+
+  return response;
 }

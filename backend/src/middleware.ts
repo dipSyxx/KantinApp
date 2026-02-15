@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { jwtVerify } from "jose";
+
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET ?? "dev-secret-change-me"
+);
 
 // Public API routes that don't require auth
 const PUBLIC_API_ROUTES = [
   "/api/health",
   "/api/auth/login",
   "/api/auth/refresh",
+  "/api/auth/logout",
   "/api/menu/week",
   "/api/menu/day",
 ];
@@ -21,7 +27,7 @@ const ALLOWED_ORIGINS = [
   "http://localhost:19006", // Expo web
 ];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const origin = request.headers.get("origin") ?? "";
 
@@ -30,7 +36,7 @@ export function middleware(request: NextRequest) {
     return handleCors(origin, new NextResponse(null, { status: 204 }));
   }
 
-  // Allow non-API routes
+  // Allow non-API, non-admin routes
   if (!pathname.startsWith("/api/") && !pathname.startsWith("/admin")) {
     return NextResponse.next();
   }
@@ -45,16 +51,80 @@ export function middleware(request: NextRequest) {
     return handleCors(origin, addSecurityHeaders(NextResponse.next()));
   }
 
-  // For protected routes, check Authorization header
-  const authHeader = request.headers.get("authorization");
-
-  if (!authHeader?.startsWith("Bearer ")) {
-    // For admin pages (browser), we can't use Bearer tokens in middleware easily
-    // so we let the page components handle auth for now
-    if (pathname.startsWith("/admin")) {
+  // ─── Admin pages (browser): cookie-based auth ─────────
+  if (pathname.startsWith("/admin")) {
+    // Allow access to the login page itself
+    if (pathname === "/admin/login") {
       return addSecurityHeaders(NextResponse.next());
     }
 
+    const token = request.cookies.get("admin_token")?.value;
+
+    if (!token) {
+      // No cookie → redirect to login
+      const loginUrl = new URL("/admin/login", request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Verify the JWT token
+    try {
+      const { payload } = await jwtVerify(token, JWT_SECRET);
+      const role = payload.role as string;
+
+      // Only allow admin roles
+      if (role !== "CANTEEN_ADMIN" && role !== "SCHOOL_ADMIN") {
+        const loginUrl = new URL("/admin/login", request.url);
+        return NextResponse.redirect(loginUrl);
+      }
+    } catch {
+      // Token expired or invalid → try to refresh
+      const refreshToken = request.cookies.get("admin_refresh")?.value;
+
+      if (refreshToken) {
+        // Attempt silent refresh
+        try {
+          const refreshRes = await fetch(new URL("/api/auth/refresh", request.url), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refreshToken }),
+          });
+
+          if (refreshRes.ok) {
+            const data = await refreshRes.json();
+            const response = NextResponse.redirect(request.url);
+
+            response.cookies.set("admin_token", data.accessToken, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === "production",
+              sameSite: "lax",
+              path: "/",
+              maxAge: 60 * 15,
+            });
+
+            return response;
+          }
+        } catch {
+          // Refresh failed
+        }
+      }
+
+      // Can't refresh → redirect to login
+      const loginUrl = new URL("/admin/login", request.url);
+      const response = NextResponse.redirect(loginUrl);
+      // Clear invalid cookies
+      response.cookies.set("admin_token", "", { path: "/", maxAge: 0 });
+      response.cookies.set("admin_refresh", "", { path: "/", maxAge: 0 });
+      return response;
+    }
+
+    return addSecurityHeaders(NextResponse.next());
+  }
+
+  // ─── API routes: Bearer token or cookie auth ───────────
+  const authHeader = request.headers.get("authorization");
+  const cookieToken = request.cookies.get("admin_token")?.value;
+
+  if (!authHeader?.startsWith("Bearer ") && !cookieToken) {
     return handleCors(
       origin,
       NextResponse.json(
@@ -62,6 +132,18 @@ export function middleware(request: NextRequest) {
         { status: 401 }
       )
     );
+  }
+
+  // If no Bearer header but cookie exists (admin web UI calling API),
+  // inject the cookie token as Authorization header for downstream route handlers
+  if (!authHeader?.startsWith("Bearer ") && cookieToken) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("authorization", `Bearer ${cookieToken}`);
+
+    const response = NextResponse.next({
+      request: { headers: requestHeaders },
+    });
+    return handleCors(origin, addSecurityHeaders(response));
   }
 
   // Token validation is done in the route handlers via requireUser()
