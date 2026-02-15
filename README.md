@@ -7,9 +7,9 @@ A canteen menu and voting app for students and kitchen staff at Hamar Katedralsk
 
 ## Architecture
 
-| Layer    | Stack                                  | Directory   |
-| -------- | -------------------------------------- | ----------- |
-| Backend  | Next.js 15 (App Router) + Prisma + Neon | `backend/`  |
+| Layer    | Stack                                          | Directory   |
+| -------- | ---------------------------------------------- | ----------- |
+| Backend  | Next.js 15 (App Router) + Prisma + Neon        | `backend/`  |
 | Frontend | Expo (React Native) + expo-router + NativeWind | `frontend/` |
 
 ## Getting Started
@@ -25,7 +25,7 @@ A canteen menu and voting app for students and kitchen staff at Hamar Katedralsk
 ```bash
 cd backend
 npm install
-cp .env.example .env        # fill in DATABASE_URL and DIRECT_URL
+cp .env.example .env        # fill in DATABASE_URL and DATABASE_URL_UNPOOLED
 npx prisma migrate dev      # run migrations
 npx prisma db seed          # seed test data
 npm run dev                 # starts on http://localhost:3000
