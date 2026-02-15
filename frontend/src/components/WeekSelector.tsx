@@ -1,5 +1,6 @@
 import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 
+
 type Props = {
   currentWeek: number;
   currentYear: number;
@@ -32,37 +33,45 @@ export function WeekSelector({
   }
 
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      className="mb-4"
-      contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-    >
-      {weeks.map(({ year, week }) => {
-        const isSelected = week === selectedWeek && year === selectedYear;
-        const isCurrent = week === currentWeek && year === currentYear;
+    <View style={{ height: 48, marginBottom: 16 }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          gap: 8,
+          alignItems: "center",
+          height: 48,
+        }}
+      >
+        {weeks.map(({ year, week }) => {
+          const isSelected = week === selectedWeek && year === selectedYear;
+          const isCurrent = week === currentWeek && year === currentYear;
 
-        return (
-          <TouchableOpacity
-            key={`${year}-${week}`}
-            onPress={() => onSelectWeek(year, week)}
-            className={`px-5 py-2.5 rounded-full ${
-              isSelected
-                ? "bg-brand-green"
-                : "bg-gray-100 border border-gray-200"
-            }`}
-          >
-            <Text
-              className={`text-sm font-semibold ${
-                isSelected ? "text-white" : "text-gray-700"
-              }`}
+          return (
+            <TouchableOpacity
+              key={`${year}-${week}`}
+              onPress={() => onSelectWeek(year, week)}
+              style={{ height: 36, paddingHorizontal: 20, borderRadius: 18, justifyContent: "center" }}
+              className={
+                isSelected
+                  ? "bg-brand-green"
+                  : "bg-gray-100 border border-gray-200"
+              }
             >
-              Uke {week}
-              {isCurrent && !isSelected ? " (nå)" : ""}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
+              <Text
+                numberOfLines={1}
+                className={`text-sm font-semibold ${
+                  isSelected ? "text-white" : "text-gray-700"
+                }`}
+              >
+                Uke {week}
+                {isCurrent && !isSelected ? " (nå)" : ""}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 }
