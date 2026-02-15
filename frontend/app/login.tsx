@@ -67,7 +67,7 @@ export default function LoginScreen() {
             <TextInput
               value={email}
               onChangeText={setEmail}
-              placeholder="din.epost@hkskole.no"
+              placeholder="din.epost@innlandetfylke.no"
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -102,9 +102,17 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
 
-          <Text className="text-center text-xs text-gray-400 mt-6">
-            Bruk skole-e-post og passord for å logge inn
-          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/register")}
+            className="mt-6 items-center"
+          >
+            <Text className="text-sm text-gray-500">
+              Har du ikke konto?{" "}
+              <Text className="text-brand-green font-semibold">
+                Registrer deg
+              </Text>
+            </Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
