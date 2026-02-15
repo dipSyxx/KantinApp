@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { del } from "@vercel/blob";
 import { prisma } from "@/lib/db";
 import { requireUser, requireRole } from "@/lib/auth";
 import { validateBody } from "@/lib/validate";
@@ -56,6 +57,20 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const existing = await prisma.dish.findUnique({ where: { id } });
   if (!existing) return notFound("Dish not found");
 
+  // If imageUrl is being changed or set to null, delete old blob
+  if (
+    result.data.imageUrl !== undefined &&
+    existing.imageUrl &&
+    existing.imageUrl !== result.data.imageUrl &&
+    existing.imageUrl.includes(".vercel-storage.com")
+  ) {
+    try {
+      await del(existing.imageUrl);
+    } catch {
+      // Old blob may not exist, ignore
+    }
+  }
+
   const dish = await prisma.dish.update({
     where: { id },
     data: result.data,
@@ -75,6 +90,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
   const existing = await prisma.dish.findUnique({ where: { id } });
   if (!existing) return notFound("Dish not found");
+
+  // Delete blob image if it's stored in Vercel Blob
+  if (existing.imageUrl?.includes(".vercel-storage.com")) {
+    try {
+      await del(existing.imageUrl);
+    } catch {
+      // Blob may already be deleted, ignore
+    }
+  }
 
   await prisma.dish.delete({ where: { id } });
 

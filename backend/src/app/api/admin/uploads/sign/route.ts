@@ -1,51 +1,58 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { requireUser, requireRole } from "@/lib/auth";
-import { validateBody } from "@/lib/validate";
-
-const signSchema = z.object({
-  filename: z.string().min(1),
-  contentType: z.string().regex(/^image\/(jpeg|png|webp|gif)$/),
-});
 
 /**
- * Generate a signed upload URL for direct upload to cloud storage.
+ * POST /api/admin/uploads/sign
  * 
- * For MVP: returns a placeholder response.
- * In production, this would generate a presigned URL for:
- * - Cloudinary (upload preset + signature)
- * - AWS S3 / Cloudflare R2 (presigned PUT URL)
- * - Vercel Blob (upload token)
+ * Server callback for Vercel Blob client-side uploads.
+ * Use this if you want direct browser-to-blob uploads (more efficient for large files).
+ * 
+ * The frontend can use @vercel/blob/client `upload()` which calls this endpoint
+ * to get a signed token, then uploads directly to Vercel Blob.
  */
 export async function POST(request: NextRequest) {
-  const { user, error: authError } = await requireUser(request);
-  if (authError) return authError;
+  const body = (await request.json()) as HandleUploadBody;
 
-  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
-  if (roleError) return roleError;
+  try {
+    const response = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (pathname) => {
+        // Authenticate: only admins can upload
+        const { user, error: authError } = await requireUser(request);
+        if (authError || !user) {
+          throw new Error("Unauthorized");
+        }
 
-  const result = await validateBody(request, signSchema);
-  if (result.error) return result.error;
+        const roleError = requireRole(user.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
+        if (roleError) {
+          throw new Error("Forbidden: insufficient role");
+        }
 
-  const { filename, contentType } = result.data;
+        return {
+          allowedContentTypes: [
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/gif",
+          ],
+          maximumSizeInBytes: 5 * 1024 * 1024, // 5 MB
+          tokenPayload: JSON.stringify({
+            userId: user.id,
+            uploadedAt: new Date().toISOString(),
+          }),
+        };
+      },
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        // Called after upload completes. Can be used to update the database.
+        console.log("Upload completed:", blob.url, tokenPayload);
+      },
+    });
 
-  // In production, generate a real signed URL here.
-  // Example for Cloudinary:
-  //   const timestamp = Math.round(Date.now() / 1000);
-  //   const signature = cloudinary.utils.api_sign_request({ timestamp, upload_preset }, API_SECRET);
-  //   return { uploadUrl, publicId, signature, timestamp };
-  //
-  // Example for S3/R2:
-  //   const command = new PutObjectCommand({ Bucket, Key, ContentType });
-  //   const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 300 });
-  //   return { uploadUrl: signedUrl, publicUrl };
-
-  return NextResponse.json({
-    message: "Image upload signing endpoint. Configure cloud storage provider in production.",
-    filename,
-    contentType,
-    // Placeholder: in production, return { uploadUrl, publicUrl }
-    uploadUrl: null,
-    publicUrl: null,
-  });
+    return NextResponse.json(response);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Upload failed";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
 }
