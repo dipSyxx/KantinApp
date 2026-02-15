@@ -6,6 +6,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useWeekMenu } from "@/api/hooks/useWeekMenu";
 import { currentWeek, isToday } from "@/lib/week";
 import { useAuth } from "@/context/AuthContext";
@@ -54,7 +55,7 @@ export default function WeekMenuScreen() {
       <View className="px-4 pt-4 pb-2">
         <View className="flex-row items-center mb-1">
           <View className="w-10 h-10 rounded-full bg-brand-green items-center justify-center mr-3">
-            <Text className="text-white text-lg font-bold">🏫</Text>
+            <Ionicons name="school" size={22} color="#FFFFFF" />
           </View>
           <View className="flex-1">
             <Text className="text-sm text-gray-500 font-medium">
@@ -89,7 +90,7 @@ export default function WeekMenuScreen() {
         />
       ) : sections.length === 0 ? (
         <EmptyState
-          icon="📋"
+          icon="calendar-outline"
           title="Meny ikke publisert"
           message={`Menyen for uke ${selectedWeek} er ikke publisert ennå. Sjekk tilbake senere!`}
         />

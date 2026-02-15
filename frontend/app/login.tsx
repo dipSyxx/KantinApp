@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useLogin } from "@/api/hooks/useAuth";
 import { useAuth } from "@/context/AuthContext";
@@ -48,7 +49,7 @@ export default function LoginScreen() {
           {/* Logo area */}
           <View className="items-center mb-10">
             <View className="w-20 h-20 rounded-full bg-brand-green items-center justify-center mb-4">
-              <Text className="text-white text-3xl">🏫</Text>
+              <Ionicons name="school" size={40} color="#FFFFFF" />
             </View>
             <Text className="text-2xl font-bold text-gray-900">
               KantinApp
