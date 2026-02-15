@@ -6,18 +6,16 @@ import { VoteButtons } from '@/components/VoteButtons'
 import { VoteStats } from '@/components/VoteStats'
 import { useAuth } from '@/context/AuthContext'
 import { formatDayName, formatShortDate } from '@/lib/week'
+import { Ionicons } from '@expo/vector-icons'
 import { Image } from 'expo-image'
-import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { Alert, ScrollView, Text, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function DishDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const { isAuthenticated } = useAuth()
   const { data, isLoading, isError, refetch } = useMenuItem(id)
   const voteMutation = useVote()
-  const router = useRouter()
-  const insets = useSafeAreaInsets()
 
   const handleVote = (value: number) => {
     if (!isAuthenticated) {
@@ -54,12 +52,18 @@ export default function DishDetailScreen() {
     <ScrollView className='flex-1 bg-white'>
       {/* Hero image */}
       <View>
-        <Image
-          source={{ uri: dish.imageUrl ?? undefined }}
-          className='w-full h-64'
-          contentFit='cover'
-          transition={300}
-        />
+        {dish.imageUrl ? (
+          <Image
+            source={{ uri: dish.imageUrl }}
+            style={{ width: '100%', height: 256 }}
+            contentFit='cover'
+            transition={300}
+          />
+        ) : (
+          <View style={{ width: '100%', height: 256 }} className='bg-gray-200 items-center justify-center'>
+            <Ionicons name='image-outline' size={64} color='#9CA3AF' />
+          </View>
+        )}
       </View>
 
       <View className='px-5 pt-5 pb-10'>
