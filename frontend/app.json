@@ -33,6 +33,13 @@
     "plugins": [
       "expo-router",
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5b3c130d-a0ee-48c5-aaa8-e50f219cb0a0"
+      }
+    },
+    "owner": "yuriix"
   }
 }
