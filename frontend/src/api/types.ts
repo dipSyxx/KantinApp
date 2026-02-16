@@ -53,6 +53,8 @@ export type MenuItemDetail = {
     isOpen: boolean;
     notes: string | null;
   };
+  canVote: boolean;
+  voteLockedReason: string | null;
   stats: VoteStats;
   myVote: number | null;
 };

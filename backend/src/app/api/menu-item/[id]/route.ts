@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { notFound } from "@/lib/errors";
+import { isToday } from "@/lib/week";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -18,8 +19,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           notes: true,
           weekMenu: {
             select: {
-              year: true,
-              weekNumber: true,
               status: true,
             },
           },
@@ -35,6 +34,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
   if (!menuItem || menuItem.menuDay.weekMenu.status !== "PUBLISHED") {
     return notFound("Menu item not found");
+  }
+
+  const isTodayMenuDay = isToday(menuItem.menuDay.date);
+  const canVote = menuItem.menuDay.isOpen && isTodayMenuDay;
+
+  let voteLockedReason: string | null = null;
+  if (!menuItem.menuDay.isOpen) {
+    voteLockedReason = "This day is closed";
+  } else if (!isTodayMenuDay) {
+    voteLockedReason = "Voting is only available for today's dishes";
   }
 
   // Compute vote stats
@@ -89,6 +98,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       isOpen: menuItem.menuDay.isOpen,
       notes: menuItem.menuDay.notes,
     },
+    canVote,
+    voteLockedReason,
     stats,
     myVote,
   };

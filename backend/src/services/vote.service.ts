@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { isDayPast } from "@/lib/week";
+import { isToday } from "@/lib/week";
 
 export type VoteResult = {
   vote: { menuItemId: string; userId: string; value: number };
@@ -9,7 +9,7 @@ export type VoteResult = {
 /**
  * Cast or update a vote on a menu item.
  * - Enforces 1 vote per user per menu item (upsert).
- * - Blocks voting on past days (after 23:59 Oslo time).
+ * - Allows voting only for today's dishes.
  * - Returns the updated stats.
  */
 export async function castVote(
@@ -30,7 +30,11 @@ export async function castVote(
         select: {
           date: true,
           isOpen: true,
-          weekMenu: { select: { status: true } },
+          weekMenu: {
+            select: {
+              status: true,
+            },
+          },
         },
       },
     },
@@ -48,9 +52,8 @@ export async function castVote(
     return { error: "This day is closed" };
   }
 
-  // Check if voting window has passed (end of the menu day)
-  if (isDayPast(menuItem.menuDay.date)) {
-    return { error: "Voting period has ended for this day" };
+  if (!isToday(menuItem.menuDay.date)) {
+    return { error: "Voting is only allowed for today's dishes" };
   }
 
   // Upsert the vote

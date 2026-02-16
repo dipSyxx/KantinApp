@@ -1,7 +1,11 @@
 import { addDays, getISOWeek, getISOWeekYear, startOfISOWeek } from 'date-fns'
-import { toZonedTime } from 'date-fns-tz'
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz'
 
 const TIMEZONE = 'Europe/Oslo'
+
+function osloDateKey(date: Date): string {
+  return formatInTimeZone(date, TIMEZONE, 'yyyy-MM-dd')
+}
 
 /**
  * Get the current date in Oslo timezone
@@ -43,10 +47,7 @@ export function weekDates(year: number, week: number): Date[] {
  * Check if a date is today (Oslo timezone)
  */
 export function isToday(date: Date): boolean {
-  const now = nowOslo()
-  return (
-    date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate()
-  )
+  return osloDateKey(date) === osloDateKey(new Date())
 }
 
 /**

@@ -24,6 +24,14 @@ export default function DishDetailScreen() {
     }
 
     if (!data) return
+    if (!data.canVote) {
+      Alert.alert(
+        'Stemmegivning er stengt',
+        data.voteLockedReason ?? 'Du kan bare stemme pa dagens retter.',
+        [{ text: 'OK' }]
+      )
+      return
+    }
 
     voteMutation.mutate({
       menuItemId: id,
@@ -44,9 +52,10 @@ export default function DishDetailScreen() {
     return <ErrorState message='Kunne ikke laste rettdetaljer.' onRetry={refetch} />
   }
 
-  const { dish, stats, myVote, price, day, status } = data
+  const { dish, stats, myVote, price, day, status, canVote, voteLockedReason } = data
   const dayName = formatDayName(day.date)
   const shortDate = formatShortDate(day.date)
+  const voteDisabled = voteMutation.isPending || !canVote
 
   return (
     <ScrollView className='flex-1 bg-white'>
@@ -109,7 +118,13 @@ export default function DishDetailScreen() {
             </Text>
           )}
 
-          <VoteButtons currentVote={myVote} onVote={handleVote} disabled={voteMutation.isPending} />
+          {!canVote && (
+            <Text className='text-sm text-gray-500 text-center mb-3'>
+              {voteLockedReason ?? 'Du kan bare stemme pa dagens retter.'}
+            </Text>
+          )}
+
+          <VoteButtons currentVote={myVote} onVote={handleVote} disabled={voteDisabled} />
 
           {/* Stats */}
           {stats.total > 0 && (
