@@ -4,6 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/context/AuthContext";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+import { Platform } from "react-native";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,14 +41,14 @@ export default function RootLayout() {
             name="login"
             options={{
               headerShown: false,
-              presentation: "modal",
+              presentation: Platform.OS === "ios" ? "card" : "modal",
             }}
           />
           <Stack.Screen
             name="register"
             options={{
               headerShown: false,
-              presentation: "modal",
+              presentation: Platform.OS === "ios" ? "card" : "modal",
             }}
           />
         </Stack>
