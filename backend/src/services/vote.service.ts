@@ -45,15 +45,15 @@ export async function castVote(
   }
 
   if (menuItem.menuDay.weekMenu.status !== "PUBLISHED") {
-    return { error: "Cannot vote on unpublished menu" };
+    return { error: "Kan ikke stemme pa en upublisert meny" };
   }
 
   if (!menuItem.menuDay.isOpen) {
-    return { error: "This day is closed" };
+    return { error: "Denne dagen er stengt" };
   }
 
   if (!isToday(menuItem.menuDay.date)) {
-    return { error: "Voting is only allowed for today's dishes" };
+    return { error: "Du kan bare stemme pa dagens retter" };
   }
 
   // Upsert the vote

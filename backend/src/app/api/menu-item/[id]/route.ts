@@ -41,9 +41,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
   let voteLockedReason: string | null = null;
   if (!menuItem.menuDay.isOpen) {
-    voteLockedReason = "This day is closed";
+    voteLockedReason = "Denne dagen er stengt";
   } else if (!isTodayMenuDay) {
-    voteLockedReason = "Voting is only available for today's dishes";
+    voteLockedReason = "Du kan bare stemme pa dagens retter";
   }
 
   // Compute vote stats
