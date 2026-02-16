@@ -4,11 +4,10 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
   Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useLogin } from "@/api/hooks/useAuth";
@@ -41,11 +40,14 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
+      <KeyboardAwareScrollView
+        bottomOffset={20}
+        contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        showsVerticalScrollIndicator={false}
       >
-        <View className="flex-1 justify-center px-8">
+        <View className="px-8 py-8">
           {/* Logo area */}
           <View className="items-center mb-10">
             <View className="w-20 h-20 rounded-full bg-brand-green items-center justify-center mb-4">
@@ -71,6 +73,7 @@ export default function LoginScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              returnKeyType="next"
               className="border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900 bg-gray-50"
               placeholderTextColor="#999"
             />
@@ -85,6 +88,8 @@ export default function LoginScreen() {
               onChangeText={setPassword}
               placeholder="Ditt passord"
               secureTextEntry
+              returnKeyType="done"
+              onSubmitEditing={handleLogin}
               className="border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900 bg-gray-50"
               placeholderTextColor="#999"
             />
@@ -114,7 +119,7 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

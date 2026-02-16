@@ -3,6 +3,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/context/AuthContext";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,6 +16,7 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   return (
+    <KeyboardProvider>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <StatusBar style="dark" />
@@ -51,5 +53,6 @@ export default function RootLayout() {
         </Stack>
       </AuthProvider>
     </QueryClientProvider>
+    </KeyboardProvider>
   );
 }
