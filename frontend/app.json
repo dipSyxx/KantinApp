@@ -4,25 +4,25 @@
     "slug": "kantinapp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/splash-screen-icons/splash-icon-light.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "scheme": "kantinapp",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#1B7A3D"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "no.hkskole.kantinapp",
+      "icon": {
+        "light": "./assets/iconsIos/light-ios.png",
+        "dark": "./assets/iconsIos/dark-ios.png",
+        "tinted": "./assets/iconsIos/tinted-ios.png"
+      },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/adaptive-icon/android-adaptive-icon.png",
         "backgroundColor": "#1B7A3D"
       },
       "edgeToEdgeEnabled": true,
@@ -36,7 +36,19 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1B7A3D",
+          "image": "./assets/splash-screen-icons/splash-icon-light.png",
+          "dark": {
+            "image": "./assets/splash-screen-icons/splash-icon-dark.png",
+            "backgroundColor": "#1B7A3D"
+          },
+          "imageWidth": 200
+        }
+      ]
     ],
     "extra": {
       "router": {},
