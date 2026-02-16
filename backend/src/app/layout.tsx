@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "KantinApp — Hamar Katedralskole",
+  title: "KantinApp - Hamar Katedralskole",
   description: "Canteen menu management and voting system",
+  other: {
+    "apple-mobile-web-app-title": "KantinApp",
+  },
 };
 
 export default function RootLayout({
