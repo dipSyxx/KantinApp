@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   if (!rl.success) {
     logger.warn("Vote rate limit exceeded", { userId: user!.id });
     return NextResponse.json(
-      { error: "RATE_LIMITED", message: "Too many vote actions. Try again later." },
+      { error: "RATE_LIMITED", message: "For mange stemmehandlinger. Prøv igjen senere." },
       { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
     );
   }

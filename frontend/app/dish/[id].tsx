@@ -27,7 +27,7 @@ export default function DishDetailScreen() {
     if (!data.canVote) {
       Alert.alert(
         'Stemmegivning er stengt',
-        data.voteLockedReason ?? 'Du kan bare stemme pa dagens retter.',
+        data.voteLockedReason ?? 'Du kan bare stemme på dagens retter.',
         [{ text: 'OK' }]
       )
       return
@@ -120,7 +120,7 @@ export default function DishDetailScreen() {
 
           {!canVote && (
             <Text className='text-sm text-gray-500 text-center mb-3'>
-              {voteLockedReason ?? 'Du kan bare stemme pa dagens retter.'}
+              {voteLockedReason ?? 'Du kan bare stemme på dagens retter.'}
             </Text>
           )}
 

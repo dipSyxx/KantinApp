@@ -19,7 +19,7 @@ export async function castVote(
 ): Promise<{ data?: VoteResult; error?: string }> {
   // Validate vote value
   if (![-1, 0, 1].includes(value)) {
-    return { error: "Vote value must be -1, 0, or 1" };
+    return { error: "Stemmen må være -1, 0 eller 1" };
   }
 
   // Check menu item exists and get day date
@@ -41,11 +41,11 @@ export async function castVote(
   });
 
   if (!menuItem) {
-    return { error: "Menu item not found" };
+    return { error: "Menypunkt ikke funnet" };
   }
 
   if (menuItem.menuDay.weekMenu.status !== "PUBLISHED") {
-    return { error: "Kan ikke stemme pa en upublisert meny" };
+    return { error: "Kan ikke stemme på en upublisert meny" };
   }
 
   if (!menuItem.menuDay.isOpen) {
@@ -53,7 +53,7 @@ export async function castVote(
   }
 
   if (!isToday(menuItem.menuDay.date)) {
-    return { error: "Du kan bare stemme pa dagens retter" };
+    return { error: "Du kan bare stemme på dagens retter" };
   }
 
   // Upsert the vote

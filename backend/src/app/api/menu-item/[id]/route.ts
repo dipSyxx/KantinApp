@@ -33,7 +33,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   });
 
   if (!menuItem || menuItem.menuDay.weekMenu.status !== "PUBLISHED") {
-    return notFound("Menu item not found");
+    return notFound("Menypunkt ikke funnet");
   }
 
   const isTodayMenuDay = isToday(menuItem.menuDay.date);
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   if (!menuItem.menuDay.isOpen) {
     voteLockedReason = "Denne dagen er stengt";
   } else if (!isTodayMenuDay) {
-    voteLockedReason = "Du kan bare stemme pa dagens retter";
+    voteLockedReason = "Du kan bare stemme på dagens retter";
   }
 
   // Compute vote stats

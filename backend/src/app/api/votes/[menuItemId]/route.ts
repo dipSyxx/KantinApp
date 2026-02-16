@@ -30,7 +30,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   });
 
   if (!existingVote) {
-    return notFound("No existing vote to update. Use POST /api/votes to create one.");
+    return notFound("Ingen eksisterende stemme å oppdatere. Bruk POST /api/votes for å opprette en.");
   }
 
   // Validate body
