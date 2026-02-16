@@ -74,11 +74,12 @@ export default async function WeekDetailPage({ params }: PageProps) {
             <div className="bg-gray-50 px-6 py-3 border-b border-gray-100 flex items-center justify-between">
               <div>
                 <span className="font-bold">
-                  {new Date(day.date).toLocaleDateString("no-NO", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                  })}
+                  {(() => {
+                    const d = new Date(day.date);
+                    const days = ["søndag", "mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag"];
+                    const months = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"];
+                    return `${days[d.getUTCDay()]} ${d.getUTCDate()}. ${months[d.getUTCMonth()]}`;
+                  })()}
                 </span>
                 {!day.isOpen && (
                   <span className="ml-2 text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full font-medium">

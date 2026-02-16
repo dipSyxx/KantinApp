@@ -1,10 +1,19 @@
 import { PrismaClient, Role, MenuStatus, Category, ItemStatus } from "@prisma/client";
 import { hash } from "bcryptjs";
+import { getISOWeek, getISOWeekYear, startOfISOWeek, addDays } from "date-fns";
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log("🌱 Seeding database...");
+
+  // ─── Clean up existing data ────────────────────────
+  console.log("  Cleaning up old data...");
+  await prisma.vote.deleteMany();
+  await prisma.menuItem.deleteMany();
+  await prisma.menuDay.deleteMany();
+  await prisma.weekMenu.deleteMany();
+  await prisma.dish.deleteMany();
 
   // ─── Users ───────────────────────────────────────────
   const passwordHash = await hash("password123", 10);
@@ -112,14 +121,9 @@ async function main() {
   console.log(`  Created ${dishes.length} dishes`);
 
   // ─── Week menu ───────────────────────────────────────
-  // Get current ISO week info
   const now = new Date();
-  const jan4 = new Date(now.getFullYear(), 0, 4);
-  const dayOfYear = Math.floor(
-    (now.getTime() - jan4.getTime()) / 86400000 + jan4.getDay() + 1
-  );
-  const currentWeek = Math.ceil(dayOfYear / 7);
-  const currentYear = now.getFullYear();
+  const currentWeek = getISOWeek(now);
+  const currentYear = getISOWeekYear(now);
 
   const weekMenu = await prisma.weekMenu.create({
     data: {
@@ -133,18 +137,15 @@ async function main() {
   console.log(`  Created week menu: ${currentYear} W${currentWeek}`);
 
   // ─── Menu days (Mon–Fri of current week) ─────────────
-  const monday = new Date(now);
-  const dayOfWeek = monday.getDay(); // 0=Sun, 1=Mon
-  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  monday.setDate(monday.getDate() + diff);
-  monday.setHours(0, 0, 0, 0);
+  const monday = startOfISOWeek(now);
 
   const dayNames = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag"];
   const menuDays = [];
 
   for (let i = 0; i < 5; i++) {
-    const date = new Date(monday);
-    date.setDate(monday.getDate() + i);
+    const localDate = addDays(monday, i);
+    // Store at UTC noon to avoid timezone shift when Prisma saves as @db.Date
+    const date = new Date(Date.UTC(localDate.getFullYear(), localDate.getMonth(), localDate.getDate(), 12, 0, 0));
 
     const menuDay = await prisma.menuDay.create({
       data: {

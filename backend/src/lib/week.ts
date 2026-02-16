@@ -22,7 +22,8 @@ export function currentISOWeek(): { year: number; week: number } {
 }
 
 /**
- * Get Monday–Friday dates for a given ISO week
+ * Get Monday–Friday dates for a given ISO week.
+ * Returns dates at UTC noon to avoid timezone shifts when stored as @db.Date.
  */
 export function weekDates(year: number, week: number): Date[] {
   // Construct a date that falls in the desired ISO week
@@ -31,7 +32,11 @@ export function weekDates(year: number, week: number): Date[] {
   const startOfWeek1 = startOfISOWeek(jan4)
   const monday = addDays(startOfWeek1, (week - 1) * 7)
 
-  return Array.from({ length: 5 }, (_, i) => addDays(monday, i))
+  return Array.from({ length: 5 }, (_, i) => {
+    const d = addDays(monday, i)
+    // UTC noon so that ±12 h timezone never shifts the calendar date
+    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0))
+  })
 }
 
 /**

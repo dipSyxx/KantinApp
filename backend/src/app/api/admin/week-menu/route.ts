@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { requireUser, requireRole } from "@/lib/auth";
 import { validateBody } from "@/lib/validate";
 import { conflict } from "@/lib/errors";
+import { weekDates } from "@/lib/week";
 
 const createWeekMenuSchema = z.object({
   year: z.number().int().min(2024).max(2100),
@@ -54,12 +55,8 @@ export async function POST(request: NextRequest) {
     return conflict(`Week menu for ${year} W${weekNumber} already exists`);
   }
 
-  // Create week menu with 5 days (Mon-Fri)
-  // Calculate Monday of that ISO week
-  const jan4 = new Date(year, 0, 4);
-  const dayOfWeek = jan4.getDay() || 7; // 1=Mon, 7=Sun
-  const monday = new Date(jan4);
-  monday.setDate(jan4.getDate() - dayOfWeek + 1 + (weekNumber - 1) * 7);
+  // Create week menu with 5 days (Mon-Fri) using ISO week calculation
+  const dates = weekDates(year, weekNumber);
 
   const weekMenu = await prisma.weekMenu.create({
     data: {
@@ -67,14 +64,10 @@ export async function POST(request: NextRequest) {
       weekNumber,
       status: "DRAFT",
       days: {
-        create: Array.from({ length: 5 }, (_, i) => {
-          const date = new Date(monday);
-          date.setDate(monday.getDate() + i);
-          return {
-            date,
-            isOpen: true,
-          };
-        }),
+        create: dates.map((date) => ({
+          date,
+          isOpen: true,
+        })),
       },
     },
     include: {

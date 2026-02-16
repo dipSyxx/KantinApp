@@ -56,21 +56,24 @@ export default async function WeeksPage() {
 
               {/* Day summary */}
               <div className="flex gap-2 mt-3">
-                {wm.days.map((day) => (
-                  <div
-                    key={day.id}
-                    className="flex-1 bg-gray-50 rounded-lg p-2 text-center"
-                  >
-                    <div className="text-xs text-gray-500">
-                      {new Date(day.date).toLocaleDateString("no-NO", {
-                        weekday: "short",
-                      })}
+                {wm.days.map((day) => {
+                  // day.date is a Date object from Prisma @db.Date — use UTC methods to avoid timezone shift
+                  const d = new Date(day.date);
+                  const dayName = ["søn.", "man.", "tir.", "ons.", "tor.", "fre.", "lør."][d.getUTCDay()];
+                  return (
+                    <div
+                      key={day.id}
+                      className="flex-1 bg-gray-50 rounded-lg p-2 text-center"
+                    >
+                      <div className="text-xs text-gray-500">
+                        {dayName}
+                      </div>
+                      <div className="text-sm font-bold">
+                        {day._count.items}
+                      </div>
                     </div>
-                    <div className="text-sm font-bold">
-                      {day._count.items}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </Link>
           );
