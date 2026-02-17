@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,6 +17,7 @@ export default function AdminLoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
@@ -35,9 +34,8 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // The login API sets an httpOnly cookie, so we just redirect
-      router.push("/admin");
-      router.refresh();
+      // Full navigation avoids cookie propagation race on client-side transitions.
+      window.location.assign("/admin");
     } catch {
       setError("Nettverksfeil. Prøv igjen.");
     } finally {
