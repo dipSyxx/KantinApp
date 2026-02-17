@@ -10,7 +10,7 @@
     "scheme": "kantinapp",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "no.hkskole.kantinapp",
+      "bundleIdentifier": "no.innlandetfylke.kantinapp",
       "icon": {
         "light": "./assets/iconsIos/light-ios.png",
         "dark": "./assets/iconsIos/dark-ios.png",
@@ -23,7 +23,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon/android-adaptive-icon.png",
-        "backgroundColor": "#1B7A3D"
+        "backgroundColor": "#FFFFFF"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -40,11 +40,11 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#1B7A3D",
+          "backgroundColor": "#FFFFFF",
           "image": "./assets/splash-screen-icons/splash-icon-light.png",
           "dark": {
             "image": "./assets/splash-screen-icons/splash-icon-dark.png",
-            "backgroundColor": "#1B7A3D"
+            "backgroundColor": "#FFFFFF"
           },
           "imageWidth": 200
         }
