@@ -1,16 +1,19 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 type Props = {
   weekMenuId: string;
   status: string;
+  isEditMode: boolean;
 };
 
-export function WeekActions({ weekMenuId, status }: Props) {
+export function WeekActions({ weekMenuId, status, isEditMode }: Props) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const handlePublish = async () => {
     if (!confirm("Er du sikker på at du vil publisere denne ukemenyen?")) return;
@@ -53,8 +56,33 @@ export function WeekActions({ weekMenuId, status }: Props) {
     }
   };
 
+  const handleToggleEdit = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (isEditMode) {
+      params.delete("edit");
+    } else {
+      params.set("edit", "1");
+    }
+
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  };
+
   return (
     <div className="flex gap-2">
+      {status === "PUBLISHED" && (
+        <button
+          onClick={handleToggleEdit}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+            isEditMode
+              ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
+              : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+          }`}
+        >
+          {isEditMode ? "Avslutt redigering" : "Aktiver redigering"}
+        </button>
+      )}
+
       {status === "DRAFT" && (
         <button
           onClick={handlePublish}
@@ -64,6 +92,7 @@ export function WeekActions({ weekMenuId, status }: Props) {
           {loading ? "..." : "Publiser"}
         </button>
       )}
+
       <button
         onClick={handleDelete}
         disabled={loading}

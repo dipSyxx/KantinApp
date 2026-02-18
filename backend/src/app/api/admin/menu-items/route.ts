@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireUser, requireRole } from "@/lib/auth";
 import { validateBody } from "@/lib/validate";
-import { notFound } from "@/lib/errors";
+import { conflict, notFound } from "@/lib/errors";
 
 const createMenuItemSchema = z.object({
   menuDayId: z.string().min(1),
@@ -26,14 +26,35 @@ export async function POST(request: NextRequest) {
   // Verify menu day exists
   const menuDay = await prisma.menuDay.findUnique({
     where: { id: result.data.menuDayId },
+    include: {
+      weekMenu: {
+        select: { status: true },
+      },
+    },
   });
   if (!menuDay) return notFound("Menu day not found");
+
+  if (menuDay.weekMenu.status === "ARCHIVED") {
+    return conflict("Kan ikke redigere en arkivert ukemeny");
+  }
 
   // Verify dish exists
   const dish = await prisma.dish.findUnique({
     where: { id: result.data.dishId },
   });
   if (!dish) return notFound("Dish not found");
+
+  const duplicate = await prisma.menuItem.findFirst({
+    where: {
+      menuDayId: result.data.menuDayId,
+      dishId: result.data.dishId,
+    },
+    select: { id: true },
+  });
+
+  if (duplicate) {
+    return conflict("Denne retten er allerede lagt til for denne dagen");
+  }
 
   const menuItem = await prisma.menuItem.create({
     data: result.data,
