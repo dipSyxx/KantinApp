@@ -187,6 +187,11 @@ export default function RegisterScreen() {
                 ? "Hamar Katedralskole"
                 : `Vi sendte en kode til ${email}`}
             </Text>
+            {step === "otp" && (
+              <Text className="text-xs text-amber-700 mt-2 text-center">
+                Sjekk søppelpost (spam) hvis du ikke finner koden i innboksen.
+              </Text>
+            )}
           </View>
 
           {step === "form" ? (
