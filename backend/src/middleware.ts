@@ -15,11 +15,13 @@ const PUBLIC_API_ROUTES = [
   "/api/auth/logout",
   "/api/menu/week",
   "/api/menu/day",
+  "/api/dishes",
 ];
 
 // Routes that start with these prefixes are public
 const PUBLIC_PREFIXES = [
   "/api/menu-item/", // menu item detail (myVote is optional)
+  "/api/dishes/",
 ];
 
 // CORS allowed origins

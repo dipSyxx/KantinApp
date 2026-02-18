@@ -38,6 +38,16 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="dishes/[id]"
+            options={{
+              headerShown: true,
+              headerTitle: "",
+              headerBackTitle: "Tilbake",
+              headerTintColor: "#1B7A3D",
+              presentation: "card",
+            }}
+          />
+          <Stack.Screen
             name="login"
             options={{
               headerShown: false,

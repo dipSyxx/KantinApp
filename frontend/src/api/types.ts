@@ -9,6 +9,27 @@ export type Dish = {
   tags: string[];
 };
 
+export type CatalogDish = {
+  id: string;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  allergens: string[];
+  tags: string[];
+  latestPrice: number | null;
+  createdAt: string;
+};
+
+export type CatalogDishDetail = {
+  id: string;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  allergens: string[];
+  tags: string[];
+  latestPrice: number | null;
+};
+
 export type MenuItemSummary = {
   id: string;
   price: number;

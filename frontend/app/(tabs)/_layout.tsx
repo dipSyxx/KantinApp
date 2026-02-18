@@ -28,6 +28,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="dishes"
+        options={{
+          title: "Retter",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="fast-food" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: "Innstillinger",
