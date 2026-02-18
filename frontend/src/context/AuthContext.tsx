@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { getAccessToken, getStoredUser, clearAuth, type StoredUser } from "@/lib/auth";
+import { api } from "@/api/client";
+import { getAccessToken, getRefreshToken, getStoredUser, clearAuth, type StoredUser } from "@/lib/auth";
 
 type AuthState = {
   isLoading: boolean;
@@ -42,6 +43,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = async () => {
+    try {
+      const refreshToken = await getRefreshToken();
+      await api.post("/api/auth/logout", refreshToken ? { refreshToken } : undefined);
+    } catch {
+      // Ignore network/server logout errors; local logout still proceeds.
+    }
+
     await clearAuth();
     setUser(null);
   };

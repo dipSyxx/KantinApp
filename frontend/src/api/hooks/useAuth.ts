@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../client";
 import {
+  getRefreshToken,
   setAccessToken,
   setRefreshToken,
   setStoredUser,
@@ -30,6 +31,12 @@ export function useLogin() {
 export function useLogout() {
   return useMutation<void, Error>({
     mutationFn: async () => {
+      try {
+        const refreshToken = await getRefreshToken();
+        await api.post("/api/auth/logout", refreshToken ? { refreshToken } : undefined);
+      } catch {
+        // Ignore network/server logout errors; local logout still proceeds.
+      }
       await clearAuth();
     },
   });
