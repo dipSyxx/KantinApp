@@ -1,224 +1,66 @@
-import { PrismaClient, Role, MenuStatus, Category, ItemStatus } from "@prisma/client";
+﻿import { PrismaClient, Role } from "@prisma/client";
 import { hash } from "bcryptjs";
-import { getISOWeek, getISOWeekYear, startOfISOWeek, addDays } from "date-fns";
 
 const prisma = new PrismaClient();
 
+const ADMIN_EMAIL = "kantine@innlandetfylke.no";
+const ADMIN_NAME = "Kantine Admin";
+
 async function main() {
-  console.log("🌱 Seeding database...");
+  console.log("Starting production cleanup seed...");
 
-  // ─── Clean up existing data ────────────────────────
-  console.log("  Cleaning up old data...");
-  await prisma.vote.deleteMany();
-  await prisma.menuItem.deleteMany();
-  await prisma.menuDay.deleteMany();
-  await prisma.weekMenu.deleteMany();
-  await prisma.dish.deleteMany();
-
-  // ─── Users ───────────────────────────────────────────
-  const passwordHash = await hash("password123", 10);
-
-  const student = await prisma.user.upsert({
-    where: { email: "vladislav@hkskole.no" },
-    update: {},
-    create: {
-      name: "Vladislav Reznichenko",
-      email: "vladislav@hkskole.no",
-      password: passwordHash,
-      role: Role.STUDENT,
-    },
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email: ADMIN_EMAIL },
+    select: { password: true },
   });
 
-  const admin = await prisma.user.upsert({
-    where: { email: "kantine@hkskole.no" },
-    update: {},
-    create: {
-      name: "Kantine Admin",
-      email: "kantine@hkskole.no",
-      password: passwordHash,
-      role: Role.CANTEEN_ADMIN,
-    },
-  });
+  const adminPasswordHash =
+    existingAdmin?.password ??
+    (process.env.SEED_ADMIN_PASSWORD
+      ? await hash(process.env.SEED_ADMIN_PASSWORD, 10)
+      : null);
 
-  console.log(`  Created users: ${student.name}, ${admin.name}`);
+  if (!adminPasswordHash) {
+    throw new Error(
+      "No existing admin password found. Set SEED_ADMIN_PASSWORD to create the admin account."
+    );
+  }
 
-  // ─── Dishes ──────────────────────────────────────────
-  const dishes = await Promise.all([
-    prisma.dish.create({
-      data: {
-        title: "Wok med nudler, kylling og grønnsaker",
-        description: "En smakfull wok med kylling, nudler og en mix av friske grønnsaker.",
-        imageUrl: "https://images.unsplash.com/photo-1569058242567-93de6f36f8eb?w=600",
-        allergens: ["gluten", "soya", "egg"],
-        tags: ["popular"],
-      },
-    }),
-    prisma.dish.create({
-      data: {
-        title: "Kebab",
-        description: "Saftig kebab med friske grønnsaker, dressing og varmt brød.",
-        imageUrl: "https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=600",
-        allergens: ["gluten", "melk"],
-        tags: [],
-      },
-    }),
-    prisma.dish.create({
-      data: {
-        title: "Kjøttboller med tomatsaus og pasta",
-        description: "Hjemmelagde kjøttboller i en rik tomatsaus servert med pasta.",
-        imageUrl: "https://images.unsplash.com/photo-1548247416-ec66f4900b2e?w=600",
-        allergens: ["gluten", "melk", "egg"],
-        tags: [],
-      },
-    }),
-    prisma.dish.create({
-      data: {
-        title: "Chili con carne tortillachips",
-        description: "Krydret chili con carne med nachos, rømme og ost.",
-        imageUrl: "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=600",
-        allergens: ["melk"],
-        tags: ["spicy"],
-      },
-    }),
-    prisma.dish.create({
-      data: {
-        title: "Pizza",
-        description: "Nystekt pizza med mozzarella, tomatsaus og valgfrie toppinger.",
-        imageUrl: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=600",
-        allergens: ["gluten", "melk"],
-        tags: ["popular"],
-      },
-    }),
-    prisma.dish.create({
-      data: {
-        title: "Vegetarisk curry med ris",
-        description: "Kremet curry med kikerter, spinat og basmatiris.",
-        imageUrl: "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=600",
-        allergens: [],
-        tags: ["vegan", "halal"],
-      },
-    }),
-    prisma.dish.create({
-      data: {
-        title: "Fiskesuppe",
-        description: "Tradisjonell norsk fiskesuppe med laks, torsk og grønnsaker.",
-        imageUrl: "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600",
-        allergens: ["fisk", "melk"],
-        tags: [],
-      },
-    }),
-    prisma.dish.create({
-      data: {
-        title: "Kanelsnurrer",
-        description: "Nybakte kanelsnurrer med glasur.",
-        imageUrl: "https://images.unsplash.com/photo-1509365390695-33aee754301f?w=600",
-        allergens: ["gluten", "melk", "egg"],
-        tags: ["dessert"],
-      },
-    }),
+  // Remove all app data from Prisma models.
+  await prisma.$transaction([
+    prisma.vote.deleteMany(),
+    prisma.menuItem.deleteMany(),
+    prisma.menuDay.deleteMany(),
+    prisma.weekMenu.deleteMany(),
+    prisma.dish.deleteMany(),
+    prisma.refreshToken.deleteMany(),
+    prisma.verificationToken.deleteMany(),
+    prisma.user.deleteMany(),
   ]);
 
-  console.log(`  Created ${dishes.length} dishes`);
-
-  // ─── Week menu ───────────────────────────────────────
-  const now = new Date();
-  const currentWeek = getISOWeek(now);
-  const currentYear = getISOWeekYear(now);
-
-  const weekMenu = await prisma.weekMenu.create({
+  const admin = await prisma.user.create({
     data: {
-      year: currentYear,
-      weekNumber: currentWeek,
-      status: MenuStatus.PUBLISHED,
-      publishedAt: new Date(),
+      name: ADMIN_NAME,
+      email: ADMIN_EMAIL,
+      password: adminPasswordHash,
+      role: Role.CANTEEN_ADMIN,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
     },
   });
 
-  console.log(`  Created week menu: ${currentYear} W${currentWeek}`);
-
-  // ─── Menu days (Mon–Fri of current week) ─────────────
-  const monday = startOfISOWeek(now);
-
-  const dayNames = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag"];
-  const menuDays = [];
-
-  for (let i = 0; i < 5; i++) {
-    const localDate = addDays(monday, i);
-    // Store at UTC noon to avoid timezone shift when Prisma saves as @db.Date
-    const date = new Date(Date.UTC(localDate.getFullYear(), localDate.getMonth(), localDate.getDate(), 12, 0, 0));
-
-    const menuDay = await prisma.menuDay.create({
-      data: {
-        date,
-        weekMenuId: weekMenu.id,
-        isOpen: true,
-        notes: dayNames[i],
-      },
-    });
-    menuDays.push(menuDay);
-  }
-
-  console.log(`  Created ${menuDays.length} menu days`);
-
-  // ─── Menu items (assign dishes to days) ──────────────
-  const assignments = [
-    // Monday
-    { dayIndex: 0, dishIndex: 0, category: Category.MAIN },
-    { dayIndex: 0, dishIndex: 5, category: Category.VEG },
-    // Tuesday
-    { dayIndex: 1, dishIndex: 1, category: Category.MAIN },
-    { dayIndex: 1, dishIndex: 6, category: Category.SOUP },
-    // Wednesday
-    { dayIndex: 2, dishIndex: 2, category: Category.MAIN },
-    { dayIndex: 2, dishIndex: 5, category: Category.VEG },
-    // Thursday
-    { dayIndex: 3, dishIndex: 3, category: Category.MAIN },
-    { dayIndex: 3, dishIndex: 7, category: Category.DESSERT },
-    // Friday
-    { dayIndex: 4, dishIndex: 4, category: Category.MAIN },
-    { dayIndex: 4, dishIndex: 1, category: Category.MAIN },
-    { dayIndex: 4, dishIndex: 7, category: Category.DESSERT },
-  ];
-
-  let itemCount = 0;
-  for (const { dayIndex, dishIndex, category } of assignments) {
-    await prisma.menuItem.create({
-      data: {
-        menuDayId: menuDays[dayIndex].id,
-        dishId: dishes[dishIndex].id,
-        price: category === Category.DESSERT ? 20 : 50,
-        category,
-        status: ItemStatus.ACTIVE,
-        sortOrder: itemCount,
-      },
-    });
-    itemCount++;
-  }
-
-  console.log(`  Created ${itemCount} menu items`);
-
-  // ─── Sample votes ────────────────────────────────────
-  const allMenuItems = await prisma.menuItem.findMany();
-  let voteCount = 0;
-
-  for (const item of allMenuItems.slice(0, 3)) {
-    await prisma.vote.create({
-      data: {
-        menuItemId: item.id,
-        userId: student.id,
-        value: 1,
-      },
-    });
-    voteCount++;
-  }
-
-  console.log(`  Created ${voteCount} sample votes`);
-  console.log("✅ Seed complete!");
+  console.log("Cleanup complete.");
+  console.log("Admin account is ready:");
+  console.log(admin);
 }
 
 main()
-  .catch((e) => {
-    console.error("❌ Seed failed:", e);
+  .catch((error) => {
+    console.error("Seed failed:", error);
     process.exit(1);
   })
   .finally(async () => {

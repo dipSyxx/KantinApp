@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getAccessToken, getRefreshToken, setAccessToken, clearAuth } from "@/lib/auth";
+import { getAccessToken, getRefreshToken, setAccessToken, setRefreshToken, clearAuth } from "@/lib/auth";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
 
@@ -41,6 +41,7 @@ api.interceptors.response.use(
         });
 
         await setAccessToken(data.accessToken);
+        await setRefreshToken(data.refreshToken);
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
 
         return api(originalRequest);
