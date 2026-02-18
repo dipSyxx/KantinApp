@@ -1,11 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,7 +25,7 @@ export default function RegisterScreen() {
 
   // OTP fields
   const [otpDigits, setOtpDigits] = useState<string[]>(
-    Array(OTP_LENGTH).fill("")
+    Array(OTP_LENGTH).fill(""),
   );
   const [otpError, setOtpError] = useState("");
   const [resendTimer, setResendTimer] = useState(0);
@@ -95,22 +89,19 @@ export default function RegisterScreen() {
   };
 
   // ─── Step 2: Verify OTP ────────────────────────────────
-  const handleOtpChange = useCallback(
-    (index: number, value: string) => {
-      const digit = value.replace(/[^0-9]/g, "").slice(-1);
+  const handleOtpChange = useCallback((index: number, value: string) => {
+    const digit = value.replace(/[^0-9]/g, "").slice(-1);
 
-      setOtpDigits((prev) => {
-        const next = [...prev];
-        next[index] = digit;
-        return next;
-      });
+    setOtpDigits((prev) => {
+      const next = [...prev];
+      next[index] = digit;
+      return next;
+    });
 
-      if (digit && index < OTP_LENGTH - 1) {
-        otpRefs.current[index + 1]?.focus();
-      }
-    },
-    []
-  );
+    if (digit && index < OTP_LENGTH - 1) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  }, []);
 
   const handleOtpKeyPress = useCallback(
     (index: number, key: string) => {
@@ -118,7 +109,7 @@ export default function RegisterScreen() {
         otpRefs.current[index - 1]?.focus();
       }
     },
-    [otpDigits]
+    [otpDigits],
   );
 
   const handleVerify = async () => {
@@ -351,7 +342,7 @@ export default function RegisterScreen() {
               {/* Error */}
               {otpError ? (
                 <View className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
-                  <Text className="text-red-600 text-sm text-center">
+                  <Text className="text-red-600 text-base text-center">
                     {otpError}
                   </Text>
                 </View>
@@ -377,7 +368,7 @@ export default function RegisterScreen() {
 
               {/* Resend */}
               <View className="items-center mt-5">
-                <Text className="text-sm text-gray-500 mb-2">
+                <Text className="text-base text-gray-500 mb-2">
                   Fikk du ikke koden?
                 </Text>
                 <TouchableOpacity
@@ -385,10 +376,8 @@ export default function RegisterScreen() {
                   disabled={resendTimer > 0 || registerMutation.isPending}
                 >
                   <Text
-                    className={`text-sm font-semibold ${
-                      resendTimer > 0
-                        ? "text-gray-400"
-                        : "text-brand-green"
+                    className={`text-base font-semibold ${
+                      resendTimer > 0 ? "text-gray-400" : "text-brand-green"
                     }`}
                   >
                     {resendTimer > 0
@@ -407,7 +396,7 @@ export default function RegisterScreen() {
                 }}
                 className="mt-4 items-center"
               >
-                <Text className="text-sm text-gray-500">
+                <Text className="text-base text-gray-500">
                   <Text className="text-brand-green font-semibold">
                     Tilbake
                   </Text>{" "}
