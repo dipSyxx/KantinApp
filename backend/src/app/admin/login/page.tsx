@@ -28,6 +28,11 @@ export default function AdminLoginPage() {
         return;
       }
 
+      if (!data?.ok || !data?.user) {
+        setError("Uventet svar fra serveren.");
+        return;
+      }
+
       // Check that the user has admin role
       if (data.user.role !== "CANTEEN_ADMIN" && data.user.role !== "SCHOOL_ADMIN") {
         setError("Du har ikke administratortilgang.");

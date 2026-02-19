@@ -33,7 +33,6 @@ async function main() {
     prisma.menuDay.deleteMany(),
     prisma.weekMenu.deleteMany(),
     prisma.dish.deleteMany(),
-    prisma.refreshToken.deleteMany(),
     prisma.verificationToken.deleteMany(),
     prisma.user.deleteMany(),
   ]);

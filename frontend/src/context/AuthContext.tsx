@@ -1,13 +1,17 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { api } from "@/api/client";
-import { getAccessToken, getRefreshToken, getStoredUser, clearAuth, type StoredUser } from "@/lib/auth";
+import type { AuthUser } from "@/api/types";
 
 type AuthState = {
   isLoading: boolean;
   isAuthenticated: boolean;
-  user: StoredUser | null;
+  user: AuthUser | null;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
+};
+
+type MeResponse = {
+  user: AuthUser;
 };
 
 const AuthContext = createContext<AuthState>({
@@ -20,17 +24,12 @@ const AuthContext = createContext<AuthState>({
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<StoredUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
 
   const loadAuth = async () => {
     try {
-      const token = await getAccessToken();
-      const storedUser = await getStoredUser();
-      if (token && storedUser) {
-        setUser(storedUser);
-      } else {
-        setUser(null);
-      }
+      const { data } = await api.get<MeResponse>("/api/me");
+      setUser(data.user);
     } catch {
       setUser(null);
     } finally {
@@ -44,14 +43,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      const refreshToken = await getRefreshToken();
-      await api.post("/api/auth/logout", refreshToken ? { refreshToken } : undefined);
+      await api.post("/api/auth/logout");
     } catch {
-      // Ignore network/server logout errors; local logout still proceeds.
+      // Ignore network/server logout errors.
+    } finally {
+      setUser(null);
     }
-
-    await clearAuth();
-    setUser(null);
   };
 
   const refresh = async () => {

@@ -1,10 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import { api } from "../client";
-import {
-  setAccessToken,
-  setRefreshToken,
-  setStoredUser,
-} from "@/lib/auth";
 import type { AuthResponse } from "../types";
 
 type RegisterInput = {
@@ -41,11 +36,6 @@ export function useVerify() {
     mutationFn: async ({ email, code }) => {
       const { data } = await api.post("/api/auth/verify", { email, code });
       return data;
-    },
-    onSuccess: async (data) => {
-      await setAccessToken(data.accessToken);
-      await setRefreshToken(data.refreshToken);
-      await setStoredUser(data.user);
     },
   });
 }

@@ -1,26 +1,17 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
+import { auth } from "@/auth";
 import { LogoutButton } from "./LogoutButton";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET ?? "dev-secret-change-me"
-);
-
 async function getUser() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get("admin_token")?.value;
-  if (!token) return null;
-
-  try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
-    return {
-      id: payload.sub as string,
-      role: payload.role as string,
-    };
-  } catch {
+  const session = await auth();
+  if (!session?.user) {
     return null;
   }
+
+  return {
+    id: session.user.id,
+    role: session.user.role,
+  };
 }
 
 export default async function AdminLayout({

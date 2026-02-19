@@ -3,7 +3,6 @@ import { z } from "zod";
 import { compare } from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { validateBody } from "@/lib/validate";
-import { signAccessToken, signRefreshToken } from "@/lib/auth";
 
 const verifySchema = z.object({
   email: z.string().email(),
@@ -79,25 +78,8 @@ export async function POST(request: NextRequest) {
     where: { id: verificationToken.id },
   });
 
-  // Generate JWT tokens
-  const accessToken = signAccessToken(user.id, user.role);
-  const refreshTokenValue = signRefreshToken(user.id);
-
-  // Store refresh token
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
-
-  await prisma.refreshToken.create({
-    data: {
-      token: refreshTokenValue,
-      userId: user.id,
-      expiresAt,
-    },
-  });
-
-  const response = NextResponse.json({
-    accessToken,
-    refreshToken: refreshTokenValue,
+  return NextResponse.json({
+    ok: true,
     user: {
       id: user.id,
       name: user.name,
@@ -105,23 +87,4 @@ export async function POST(request: NextRequest) {
       role: user.role,
     },
   });
-
-  // Set httpOnly cookies (for admin web UI compatibility)
-  response.cookies.set("admin_token", accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 15,
-  });
-
-  response.cookies.set("admin_refresh", refreshTokenValue, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  });
-
-  return response;
 }

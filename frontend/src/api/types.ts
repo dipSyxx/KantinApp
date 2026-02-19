@@ -89,13 +89,14 @@ export type VoteResponse = {
   stats: VoteStats;
 };
 
+export type AuthUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+};
+
 export type AuthResponse = {
-  accessToken: string;
-  refreshToken: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role: string;
-  };
+  ok: boolean;
+  user: AuthUser;
 };

@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function SettingsScreen() {
-  const { user, isAuthenticated, logout, refresh } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -33,16 +33,28 @@ export default function SettingsScreen() {
         <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm">
           <View className="flex-row items-center mb-2">
             <Ionicons name="person-circle-outline" size={20} color="#6B7280" />
-            <Text className="text-sm text-gray-500 font-medium ml-1.5">Bruker</Text>
+            <Text className="text-sm text-gray-500 font-medium ml-1.5">
+              Bruker
+            </Text>
           </View>
           {isAuthenticated && user ? (
             <>
-              <Text className="text-lg font-bold text-gray-900">{user.name}</Text>
+              <Text className="text-lg font-bold text-gray-900">
+                {user.name}
+              </Text>
               <Text className="text-sm text-gray-500">{user.email}</Text>
               <View className="flex-row items-center mt-1">
-                <Ionicons name="shield-checkmark-outline" size={14} color="#9CA3AF" />
+                <Ionicons
+                  name="shield-checkmark-outline"
+                  size={14}
+                  color="#9CA3AF"
+                />
                 <Text className="text-xs text-gray-400 ml-1">
-                  {user.role === "STUDENT" ? "Elev" : user.role === "CANTEEN_ADMIN" ? "Kantine-admin" : user.role}
+                  {user.role === "STUDENT"
+                    ? "Elev"
+                    : user.role === "CANTEEN_ADMIN"
+                      ? "Kantine-admin"
+                      : user.role}
                 </Text>
               </View>
             </>
@@ -63,8 +75,14 @@ export default function SettingsScreen() {
         {/* App info */}
         <View className="bg-white rounded-2xl p-4 mb-4 shadow-sm">
           <View className="flex-row items-center mb-2">
-            <Ionicons name="information-circle-outline" size={20} color="#6B7280" />
-            <Text className="text-sm text-gray-500 font-medium ml-1.5">App</Text>
+            <Ionicons
+              name="information-circle-outline"
+              size={20}
+              color="#6B7280"
+            />
+            <Text className="text-sm text-gray-500 font-medium ml-1.5">
+              App
+            </Text>
           </View>
           <Text className="text-base text-gray-900">KantinApp v1.0.0</Text>
           <Text className="text-sm text-gray-500">Hamar Katedralskole</Text>

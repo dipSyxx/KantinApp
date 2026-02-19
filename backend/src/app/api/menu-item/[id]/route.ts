@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { notFound } from "@/lib/errors";
+import { getOptionalUser } from "@/lib/auth";
 import { isToday } from "@/lib/week";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(_request: NextRequest, { params }: RouteParams) {
   const { id } = await params;
 
   const menuItem = await prisma.menuItem.findUnique({
@@ -57,27 +58,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
   // Check if requesting user has voted (from auth header)
   let myVote: number | null = null;
-  const authHeader = request.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    try {
-      // Will be implemented properly in Stage 6; for now extract userId from simple token
-      const token = authHeader.slice(7);
-      const { verifyToken } = await import("@/lib/auth");
-      const payload = verifyToken(token);
-      if (payload) {
-        const userVote = await prisma.vote.findUnique({
-          where: {
-            menuItemId_userId: {
-              menuItemId: id,
-              userId: payload.sub,
-            },
-          },
-        });
-        myVote = userVote?.value ?? null;
-      }
-    } catch {
-      // Not authenticated, myVote stays null
-    }
+  const { user } = await getOptionalUser();
+  if (user) {
+    const userVote = await prisma.vote.findUnique({
+      where: {
+        menuItemId_userId: {
+          menuItemId: id,
+          userId: user.id,
+        },
+      },
+    });
+    myVote = userVote?.value ?? null;
   }
 
   const response = {

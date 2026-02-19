@@ -40,7 +40,8 @@ Opprett `.env` basert på `.env.example` og fyll inn:
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL tilkoblingsstreng (pooled) |
 | `DATABASE_URL_UNPOOLED` | Direkte tilkobling (for migrasjoner) |
-| `JWT_SECRET` | Tilfeldig streng, minst 32 tegn |
+| `AUTH_SECRET` | Auth.js secret, tilfeldig streng minst 32 tegn |
+| `JWT_SECRET` | Midlertidig fallback for auth-secret migrering |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob-token for bildeopplasting |
 | `MAILEROO_API_KEY` | API-nokkel for Maileroo (e-posttjeneste) |
 | `MAILEROO_TEMPLATE_VERIFY_ID` | Template-ID for OTP-verifisering i Maileroo |
@@ -81,12 +82,12 @@ Skann QR-koden med Expo Go (Android/iOS) eller trykk `a` for Android-emulator / 
 KantinApp/
 ├── backend/
 │   ├── prisma/
-│   │   ├── schema.prisma          # Databaseskjema (8 modeller)
+│   │   ├── schema.prisma          # Databaseskjema (7 modeller)
 │   │   └── seed.ts                # Testdata
 │   └── src/
 │       ├── app/
 │       │   ├── api/
-│       │   │   ├── auth/          # Registrering, login, OTP, refresh, logout
+│       │   │   ├── auth/          # Registrering, login, OTP, session/logout
 │       │   │   ├── admin/         # Retter, ukemenyer, menypunkter, opplasting, analyse
 │       │   │   ├── menu/          # Offentlig meny (uke/dag)
 │       │   │   ├── menu-item/     # Rettdetaljer med stemmestatistikk
@@ -111,7 +112,7 @@ KantinApp/
     │   └── register.tsx           # Registrering med OTP
     └── src/
         ├── api/
-        │   ├── client.ts          # Axios med JWT-interceptorer
+        │   ├── client.ts          # Axios med cookie-baserte sessions
         │   ├── types.ts           # TypeScript-typer
         │   └── hooks/             # React Query-hooks
         ├── components/            # UI-komponenter
@@ -125,9 +126,7 @@ KantinApp/
 ## Databaseskjema
 
 ```
-User ──< RefreshToken
-  │
-  └──< Vote >── MenuItem >── Dish
+User ──< Vote >── MenuItem >── Dish
                     │
                MenuDay >── WeekMenu
                
@@ -139,7 +138,6 @@ VerificationToken (midlertidig OTP-lagring)
 | Modell | Beskrivelse |
 | --- | --- |
 | `User` | Brukere med roller: `STUDENT`, `CANTEEN_ADMIN`, `SCHOOL_ADMIN` |
-| `RefreshToken` | JWT refresh-tokens (7 dagers gyldighet) |
 | `WeekMenu` | Ukemeny med status: `DRAFT` / `PUBLISHED` / `ARCHIVED` |
 | `MenuDay` | Dag i uken (mandag–fredag), refererer til `WeekMenu` |
 | `Dish` | Rett med tittel, beskrivelse, bilde, allergener og tagger |
@@ -166,8 +164,8 @@ VerificationToken (midlertidig OTP-lagring)
 | --- | --- | --- |
 | `POST` | `/api/auth/register` | Registrering (sender OTP-e-post) |
 | `POST` | `/api/auth/verify` | Verifiser OTP og opprett bruker |
-| `POST` | `/api/auth/login` | Innlogging (JWT + cookies) |
-| `POST` | `/api/auth/refresh` | Forny access-token |
+| `POST` | `/api/auth/login` | Innlogging (NextAuth session cookie) |
+| `POST` | `/api/auth/refresh` | No-op (deprecated, for kompatibilitet) |
 | `POST` | `/api/auth/logout` | Logg ut (slett cookies) |
 
 ### Bruker (krever autentisering)
@@ -207,8 +205,7 @@ VerificationToken (midlertidig OTP-lagring)
 - Pull-to-refresh og lasting-skjelett
 - Registrering med e-postverifisering (OTP)
 - Domenerestrikjon: kun `@innlandetfylke.no`
-- Sikker tokenlagring med `expo-secure-store`
-- Automatisk fornyelse av utlopte tokens
+- Cookie-basert sessions via backend (`/api/me` som auth-kilde)
 
 ### Admin-panel (kantinepersonale)
 
@@ -220,11 +217,11 @@ VerificationToken (midlertidig OTP-lagring)
 - Detaljvisning per uke: legg til retter per dag, publiser
 - Statusstyring per menypunkt (aktiv / endret / utsolgt)
 - Analyse med toppretter, stemmefordeling og CSV-eksport
-- Cookie-basert autentisering med automatisk tokenfornyelse
+- Cookie-basert autentisering med NextAuth.js
 
 ### Sikkerhet
 
-- JWT-autentisering (access + refresh tokens)
+- NextAuth.js session-autentisering (JWT strategy i httpOnly-cookies)
 - Rollebasert tilgangskontroll (RBAC)
 - Sikre httpOnly-cookies for admin-panel
 - E-postverifisering med OTP ved registrering
@@ -243,8 +240,7 @@ VerificationToken (midlertidig OTP-lagring)
 | --- | --- | --- |
 | Next.js | 15.x | Server-framework med App Router |
 | Prisma | 6.x | ORM for PostgreSQL |
-| jose | 6.x | JWT-verifikasjon i Edge-middleware |
-| jsonwebtoken | 9.x | JWT-signering i API-ruter |
+| next-auth | 5.x beta | Auth.js/NextAuth sessionhondtering |
 | bcryptjs | 2.x | Passordkryptering |
 | zod | 3.x | Skjemavalidering |
 | date-fns | 4.x | Datohondtering (ISO-uker, Oslo-tidssone) |
@@ -258,8 +254,7 @@ VerificationToken (midlertidig OTP-lagring)
 | expo-router | 6.x | Filbasert navigasjon |
 | NativeWind | 4.x | Tailwind CSS for React Native |
 | @tanstack/react-query | 5.x | Servertilstandshondtering, caching |
-| axios | 1.x | HTTP-klient med interceptorer |
-| expo-secure-store | 15.x | Sikker tokenlagring |
+| axios | 1.x | HTTP-klient med cookie-sessions (`withCredentials`) |
 | expo-image | 3.x | Optimalisert bildekomponent |
 
 ---

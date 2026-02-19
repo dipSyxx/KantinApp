@@ -5,6 +5,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useRegister, useVerify } from "@/api/hooks/useRegister";
+import { useLogin } from "@/api/hooks/useAuth";
 import { useAuth } from "@/context/AuthContext";
 
 const ALLOWED_DOMAIN = "@innlandetfylke.no";
@@ -33,6 +34,7 @@ export default function RegisterScreen() {
 
   const registerMutation = useRegister();
   const verifyMutation = useVerify();
+  const loginMutation = useLogin();
   const { refresh } = useAuth();
   const router = useRouter();
 
@@ -125,6 +127,10 @@ export default function RegisterScreen() {
       await verifyMutation.mutateAsync({
         email: email.trim().toLowerCase(),
         code,
+      });
+      await loginMutation.mutateAsync({
+        email: email.trim().toLowerCase(),
+        password,
       });
       await refresh();
       router.replace("/(tabs)");
@@ -353,16 +359,19 @@ export default function RegisterScreen() {
                 onPress={handleVerify}
                 disabled={
                   verifyMutation.isPending ||
+                  loginMutation.isPending ||
                   otpDigits.join("").length !== OTP_LENGTH
                 }
                 className={`rounded-xl py-4 items-center ${
-                  verifyMutation.isPending
+                  verifyMutation.isPending || loginMutation.isPending
                     ? "bg-brand-green/60"
                     : "bg-brand-green"
                 }`}
               >
                 <Text className="text-white text-base font-bold">
-                  {verifyMutation.isPending ? "Bekrefter..." : "Bekreft"}
+                  {verifyMutation.isPending || loginMutation.isPending
+                    ? "Bekrefter..."
+                    : "Bekreft"}
                 </Text>
               </TouchableOpacity>
 
