@@ -5,18 +5,34 @@ import { Text, TouchableOpacity, View } from "react-native";
 type DishesFloatingMenuProps = {
   activeFilterCount: number;
   viewMode: DishesViewMode;
-  bottomOffset: number;
+  tabBarHeight: number;
+  bottomInset: number;
   onOpenFilters: () => void;
   onToggleView: () => void;
 };
 
+const TAB_BAR_BASE_HEIGHT = 49;
+const FLOATING_MENU_GAP_RATIO = 0.16;
+const FLOATING_MENU_MIN_GAP = 10;
+const FLOATING_MENU_MAX_GAP = 16;
+
 export function DishesFloatingMenu({
   activeFilterCount,
   viewMode,
-  bottomOffset,
+  tabBarHeight,
+  bottomInset,
   onOpenFilters,
   onToggleView,
 }: DishesFloatingMenuProps) {
+  const tabBarContentHeight = Math.max(TAB_BAR_BASE_HEIGHT, tabBarHeight - bottomInset);
+  const gapFromTabBar = Math.min(
+    FLOATING_MENU_MAX_GAP,
+    Math.max(
+      FLOATING_MENU_MIN_GAP,
+      Math.round(tabBarContentHeight * FLOATING_MENU_GAP_RATIO),
+    ),
+  );
+
   return (
     <View
       pointerEvents="box-none"
@@ -24,7 +40,8 @@ export function DishesFloatingMenu({
         position: "absolute",
         left: 0,
         right: 0,
-        bottom: bottomOffset,
+        // Keep a stable visual gap above BottomTabBar across devices.
+        bottom: gapFromTabBar,
         zIndex: 50,
         alignItems: "center",
       }}

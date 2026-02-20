@@ -37,7 +37,6 @@ import {
 
 const GRID_GAP = 12;
 const GRID_HORIZONTAL_PADDING = 16;
-const FLOATING_MENU_VERTICAL_GAP = -32;
 const FLOATING_MENU_HEIGHT = 64;
 const SCROLL_TOP_THRESHOLD = 2;
 
@@ -91,7 +90,6 @@ export default function DishesScreen() {
     [appliedFilters],
   );
 
-  const floatingMenuBottomOffset = insets.bottom + FLOATING_MENU_VERTICAL_GAP;
   const listBottomPadding = tabBarHeight + insets.bottom + FLOATING_MENU_HEIGHT + 20;
   const gridItemWidth = Math.max(
     140,
@@ -264,7 +262,8 @@ export default function DishesScreen() {
           <DishesFloatingMenu
             activeFilterCount={activeFilterCount}
             viewMode={viewMode}
-            bottomOffset={floatingMenuBottomOffset}
+            tabBarHeight={tabBarHeight}
+            bottomInset={insets.bottom}
             onOpenFilters={handleOpenDrawer}
             onToggleView={handleToggleViewMode}
           />
