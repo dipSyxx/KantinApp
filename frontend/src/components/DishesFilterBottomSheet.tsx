@@ -27,8 +27,12 @@ const SHEET_MIN_HEIGHT = 420;
 const SHEET_MAX_HEIGHT_RATIO = 0.78;
 const SHEET_TOP_GAP = 24;
 const SHEET_HIDDEN_EXTRA_OFFSET = 32;
-const SWIPE_CLOSE_THRESHOLD = 90;
-const SWIPE_CLOSE_VELOCITY = 900;
+const SWIPE_CLOSE_THRESHOLD_RATIO = 0.17;
+const SWIPE_CLOSE_THRESHOLD_MIN = 64;
+const SWIPE_CLOSE_THRESHOLD_MAX = 132;
+const SWIPE_CLOSE_VELOCITY_RATIO = 1.05;
+const SWIPE_CLOSE_VELOCITY_MIN = 720;
+const SWIPE_CLOSE_VELOCITY_MAX = 1350;
 const SWIPE_CLOSE_ANIMATION_DURATION = 120;
 const SWIPE_OPEN_ANIMATION_DURATION = 220;
 const SWIPE_HIDE_ANIMATION_DURATION = 180;
@@ -59,6 +63,22 @@ export function DishesFilterBottomSheet({
     [sheetHeight],
   );
   const swipeCloseDistance = sheetHiddenTranslateY;
+  const swipeCloseThreshold = useMemo(
+    () =>
+      Math.min(
+        SWIPE_CLOSE_THRESHOLD_MAX,
+        Math.max(SWIPE_CLOSE_THRESHOLD_MIN, sheetHeight * SWIPE_CLOSE_THRESHOLD_RATIO),
+      ),
+    [sheetHeight],
+  );
+  const swipeCloseVelocity = useMemo(
+    () =>
+      Math.min(
+        SWIPE_CLOSE_VELOCITY_MAX,
+        Math.max(SWIPE_CLOSE_VELOCITY_MIN, windowHeight * SWIPE_CLOSE_VELOCITY_RATIO),
+      ),
+    [windowHeight],
+  );
 
   const handleSwipeCloseComplete = useCallback(() => {
     isClosingBySwipeRef.current = true;
@@ -101,7 +121,7 @@ export function DishesFilterBottomSheet({
         })
         .onEnd((event) => {
           const shouldClose =
-            dragY.value > SWIPE_CLOSE_THRESHOLD || event.velocityY > SWIPE_CLOSE_VELOCITY;
+            dragY.value > swipeCloseThreshold || event.velocityY > swipeCloseVelocity;
           if (shouldClose) {
             dragY.value = withTiming(
               swipeCloseDistance,
@@ -122,7 +142,14 @@ export function DishesFilterBottomSheet({
             dragY.value = 0;
           }
         }),
-    [dragY, enableSwipeDown, handleSwipeCloseComplete, swipeCloseDistance],
+    [
+      dragY,
+      enableSwipeDown,
+      handleSwipeCloseComplete,
+      swipeCloseDistance,
+      swipeCloseThreshold,
+      swipeCloseVelocity,
+    ],
   );
 
   const sheetAnimatedStyle = useAnimatedStyle(() => {
