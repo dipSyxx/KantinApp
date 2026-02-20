@@ -1,8 +1,7 @@
 import { useDish } from "@/api/hooks/useDish";
 import { AllergenBadge } from "@/components/Badge";
 import { ErrorState } from "@/components/ErrorState";
-import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
+import { HeroImage } from "@/components/HeroImage";
 import { useLocalSearchParams } from "expo-router";
 import { ScrollView, Text, View } from "react-native";
 
@@ -27,18 +26,7 @@ export default function DishCatalogDetailScreen() {
   return (
     <ScrollView className="flex-1 bg-white">
       <View>
-        {imageUrl ? (
-          <Image
-            source={{ uri: imageUrl }}
-            style={{ width: "100%", height: 256 }}
-            contentFit="cover"
-            transition={300}
-          />
-        ) : (
-          <View style={{ width: "100%", height: 256 }} className="bg-gray-200 items-center justify-center">
-            <Ionicons name="image-outline" size={64} color="#9CA3AF" />
-          </View>
-        )}
+        <HeroImage imageUrl={imageUrl} />
       </View>
 
       <View className="px-5 pt-5 pb-10">

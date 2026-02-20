@@ -2,12 +2,11 @@ import { useMenuItem } from '@/api/hooks/useMenuItem'
 import { useVote } from '@/api/hooks/useVote'
 import { AllergenBadge, StatusBadge } from '@/components/Badge'
 import { ErrorState } from '@/components/ErrorState'
+import { HeroImage } from '@/components/HeroImage'
 import { VoteButtons } from '@/components/VoteButtons'
 import { VoteStats } from '@/components/VoteStats'
 import { useAuth } from '@/context/AuthContext'
 import { formatDayName, formatShortDate } from '@/lib/week'
-import { Ionicons } from '@expo/vector-icons'
-import { Image } from 'expo-image'
 import { useLocalSearchParams } from 'expo-router'
 import { Alert, ScrollView, Text, View } from 'react-native'
 
@@ -61,18 +60,7 @@ export default function DishDetailScreen() {
     <ScrollView className='flex-1 bg-white'>
       {/* Hero image */}
       <View>
-        {dish.imageUrl ? (
-          <Image
-            source={{ uri: dish.imageUrl }}
-            style={{ width: '100%', height: 256 }}
-            contentFit='cover'
-            transition={300}
-          />
-        ) : (
-          <View style={{ width: '100%', height: 256 }} className='bg-gray-200 items-center justify-center'>
-            <Ionicons name='image-outline' size={64} color='#9CA3AF' />
-          </View>
-        )}
+        <HeroImage imageUrl={dish.imageUrl} />
       </View>
 
       <View className='px-5 pt-5 pb-10'>
