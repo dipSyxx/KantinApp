@@ -1,5 +1,5 @@
 import { View, Text } from "react-native";
-import { ALLERGEN_LABELS, TAG_LABELS } from "@/constants/allergens";
+import { ALLERGEN_LABELS, getTagAppearance } from "@/constants/allergens";
 
 type AllergenBadgeProps = {
   allergen: string;
@@ -9,7 +9,7 @@ export function AllergenBadge({ allergen }: AllergenBadgeProps) {
   const label = ALLERGEN_LABELS[allergen] ?? allergen;
 
   return (
-    <View className="bg-red-50 border border-red-200 px-2 py-0.5 rounded-full mr-1 mb-1">
+    <View className="bg-red-50 px-2 py-0.5 rounded-full mr-1 mb-1">
       <Text className="text-red-700 text-xs font-medium">{label}</Text>
     </View>
   );
@@ -20,16 +20,15 @@ type TagBadgeProps = {
 };
 
 export function TagBadge({ tag }: TagBadgeProps) {
-  const config = TAG_LABELS[tag];
-  if (!config) return null;
+  const { label, color, backgroundColor } = getTagAppearance(tag);
 
   return (
     <View
       className="px-2 py-0.5 rounded-full mr-1 mb-1"
-      style={{ backgroundColor: config.color + "20" }}
+      style={{ backgroundColor }}
     >
-      <Text style={{ color: config.color }} className="text-xs font-semibold">
-        {config.label}
+      <Text style={{ color }} className="text-xs font-semibold">
+        {label}
       </Text>
     </View>
   );
