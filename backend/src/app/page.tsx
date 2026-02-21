@@ -1,8 +1,21 @@
+import { Navbar } from "./components/landing/Navbar";
+import { Hero } from "./components/landing/Hero";
+import { Features } from "./components/landing/Features";
+import { HowItWorks } from "./components/landing/HowItWorks";
+import { ForWhom } from "./components/landing/ForWhom";
+import { WhySection } from "./components/landing/WhySection";
+import { Footer } from "./components/landing/Footer";
+
 export default function Home() {
   return (
-    <main style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
-      <h1>KantinApp Backend</h1>
-      <p>API is running. Visit <a href="/api/health">/api/health</a> to check status.</p>
-    </main>
+    <>
+      <Navbar />
+      <Hero />
+      <Features />
+      <HowItWorks />
+      <ForWhom />
+      <WhySection />
+      <Footer />
+    </>
   );
 }

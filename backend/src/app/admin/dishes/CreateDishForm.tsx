@@ -2,6 +2,9 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { Upload } from "lucide-react";
+import { AllergenPicker } from "./AllergenPicker";
+import { TagPicker } from "./TagPicker";
 
 type ImageMode = "upload" | "url";
 
@@ -14,36 +17,41 @@ export function CreateDishForm() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [allergens, setAllergens] = useState("");
-  const [tags, setTags] = useState("");
+  const [allergens, setAllergens] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate type
+  const handleFileSelect = (file: File) => {
     if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
       setError("Ugyldig filtype. Bruk JPEG, PNG, WebP eller GIF.");
       return;
     }
-
-    // Validate size (5 MB)
     if (file.size > 5 * 1024 * 1024) {
       setError("Filen er for stor. Maks 5 MB.");
       return;
     }
-
     setError("");
     setImageFile(file);
-
-    // Create preview
     const reader = new FileReader();
     reader.onloadend = () => setImagePreview(reader.result as string);
     reader.readAsDataURL(file);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleFileSelect(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      setImageMode("upload");
+      handleFileSelect(file);
+    }
   };
 
   const clearFile = () => {
@@ -56,24 +64,20 @@ export function CreateDishForm() {
     if (imageMode === "url") {
       return imageUrl.trim() || undefined;
     }
-
     if (!imageFile) return undefined;
 
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append("file", imageFile);
-
       const res = await fetch("/api/admin/uploads", {
         method: "POST",
         body: formData,
       });
-
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error ?? "Opplasting feilet");
       }
-
       const data = await res.json();
       return data.url;
     } finally {
@@ -83,14 +87,11 @@ export function CreateDishForm() {
 
   const handleCreate = async () => {
     if (!title.trim()) return;
-
     setLoading(true);
     setError("");
 
     try {
-      // Upload image first if needed
       const finalImageUrl = await uploadImage();
-
       const res = await fetch("/api/admin/dishes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -98,14 +99,8 @@ export function CreateDishForm() {
           title: title.trim(),
           description: description.trim() || undefined,
           imageUrl: finalImageUrl,
-          allergens: allergens
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
-          tags: tags
-            .split(",")
-            .map((s) => s.trim())
-            .filter(Boolean),
+          allergens,
+          tags,
         }),
       });
 
@@ -115,14 +110,13 @@ export function CreateDishForm() {
         return;
       }
 
-      // Reset
       setTitle("");
       setDescription("");
       setImageUrl("");
       setImageFile(null);
       setImagePreview(null);
-      setAllergens("");
-      setTags("");
+      setAllergens([]);
+      setTags([]);
       setOpen(false);
       router.refresh();
     } catch (err) {
@@ -174,7 +168,6 @@ export function CreateDishForm() {
           />
         </div>
 
-        {/* Image: tab selector */}
         <div>
           <label className="block text-sm font-medium text-gray-600 mb-2">
             Bilde
@@ -218,19 +211,19 @@ export function CreateDishForm() {
                     onClick={clearFile}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold hover:bg-red-600 transition-colors"
                   >
-                    ✕
+                    &times;
                   </button>
                 </div>
               ) : (
                 <div
                   onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleDrop}
                   className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/50 transition-colors"
                 >
-                  <svg className="mx-auto h-8 w-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+                  <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
                   <p className="text-sm text-gray-500">
-                    Klikk for å velge bilde
+                    Klikk eller dra bilde hit
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
                     JPEG, PNG, WebP eller GIF (maks 5 MB)
@@ -256,32 +249,9 @@ export function CreateDishForm() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">
-              Allergener (komma-separert)
-            </label>
-            <input
-              type="text"
-              value={allergens}
-              onChange={(e) => setAllergens(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              placeholder="gluten, melk, egg"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">
-              Tags (komma-separert)
-            </label>
-            <input
-              type="text"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              placeholder="popular, vegan, spicy"
-            />
-          </div>
-        </div>
+        <AllergenPicker value={allergens} onChange={setAllergens} />
+        <TagPicker value={tags} onChange={setTags} />
+
         {error && <p className="text-red-500 text-sm">{error}</p>}
         <div className="flex gap-2 pt-2">
           <button

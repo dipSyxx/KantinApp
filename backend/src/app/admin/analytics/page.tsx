@@ -1,137 +1,229 @@
-import { prisma } from "@/lib/db";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { useEffect, useState, useCallback } from "react";
+import {
+  Vote,
+  UtensilsCrossed,
+  CalendarDays,
+  TrendingUp,
+  BarChart3,
+  ThumbsUp,
+  Loader2,
+  type LucideIcon,
+} from "lucide-react";
 
-export default async function AnalyticsPage() {
-  // Compute stats
-  const [totalVotes, totalDishes, totalMenuItems] = await Promise.all([
-    prisma.vote.count(),
-    prisma.dish.count(),
-    prisma.menuItem.count(),
-  ]);
+import { DateFilter } from "./components/DateFilter";
+import { VoteDistribution } from "./components/VoteDistribution";
+import { TrendChart } from "./components/TrendChart";
+import { CategoryBreakdown } from "./components/CategoryBreakdown";
+import { DishTable } from "./components/DishTable";
+import { EngagementCard } from "./components/EngagementCard";
+import { ExportButtons } from "./components/ExportButtons";
 
-  // Top rated dishes
-  const menuItemsWithVotes = await prisma.menuItem.findMany({
-    where: { votes: { some: {} } },
-    include: {
-      dish: { select: { title: true, imageUrl: true } },
-      menuDay: { select: { date: true } },
-      votes: { select: { value: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-  });
+type AnalyticsData = {
+  summary: {
+    totalItems: number;
+    totalVotes: number;
+    totalDishes: number;
+    averageVotesPerItem: number;
+    avgScore: number;
+  };
+  voteDistribution: { up: number; mid: number; down: number };
+  categoryBreakdown: {
+    category: string;
+    up: number;
+    mid: number;
+    down: number;
+    total: number;
+  }[];
+  dailyTrend: {
+    date: string;
+    up: number;
+    mid: number;
+    down: number;
+    total: number;
+  }[];
+  dishes: {
+    dish: string;
+    imageUrl: string | null;
+    up: number;
+    mid: number;
+    down: number;
+    total: number;
+    score: number;
+    positivePct: number;
+    history: {
+      date: string;
+      up: number;
+      mid: number;
+      down: number;
+      total: number;
+    }[];
+  }[];
+  engagement: {
+    itemsWithVotes: number;
+    itemsTotal: number;
+    pctWithVotes: number;
+    avgVotesPerItem: number;
+    mostActiveDay: string;
+    mostActiveDayCount: number;
+  };
+  items: {
+    date: string;
+    dish: string;
+    category: string;
+    status: string;
+    votes: { up: number; mid: number; down: number; total: number };
+    avgScore: number;
+  }[];
+};
 
-  const dishStats = new Map<
-    string,
-    { title: string; imageUrl: string | null; up: number; mid: number; down: number; total: number }
-  >();
+export default function AnalyticsPage() {
+  const [from, setFrom] = useState<string | undefined>();
+  const [to, setTo] = useState<string | undefined>();
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  for (const item of menuItemsWithVotes) {
-    const existing = dishStats.get(item.dish.title) ?? {
-      title: item.dish.title,
-      imageUrl: item.dish.imageUrl,
-      up: 0,
-      mid: 0,
-      down: 0,
-      total: 0,
-    };
-
-    for (const v of item.votes) {
-      existing.total++;
-      if (v.value === 1) existing.up++;
-      else if (v.value === 0) existing.mid++;
-      else if (v.value === -1) existing.down++;
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (from) params.set("from", from);
+      if (to) params.set("to", to);
+      const res = await fetch(`/api/admin/analytics?${params.toString()}`);
+      if (res.ok) setData(await res.json());
+    } finally {
+      setLoading(false);
     }
+  }, [from, to]);
 
-    dishStats.set(item.dish.title, existing);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  function handleDateChange(newFrom?: string, newTo?: string) {
+    setFrom(newFrom);
+    setTo(newTo);
   }
 
-  const topDishes = [...dishStats.values()]
-    .map((d) => ({
-      ...d,
-      score: d.total > 0 ? (d.up - d.down) / d.total : 0,
-    }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 10);
+  const stats: {
+    label: string;
+    value: string | number;
+    icon: LucideIcon;
+    color: string;
+    bg: string;
+  }[] = data
+    ? [
+        {
+          label: "Totale stemmer",
+          value: data.summary.totalVotes,
+          icon: Vote,
+          color: "text-blue-600",
+          bg: "bg-blue-50",
+        },
+        {
+          label: "Unike retter",
+          value: data.summary.totalDishes,
+          icon: UtensilsCrossed,
+          color: "text-emerald-600",
+          bg: "bg-emerald-50",
+        },
+        {
+          label: "Menypunkter",
+          value: data.summary.totalItems,
+          icon: CalendarDays,
+          color: "text-purple-600",
+          bg: "bg-purple-50",
+        },
+        {
+          label: "Snitt stemmer/rett",
+          value: data.summary.averageVotesPerItem,
+          icon: TrendingUp,
+          color: "text-cyan-600",
+          bg: "bg-cyan-50",
+        },
+        {
+          label: "Retter med stemmer",
+          value: `${data.engagement.pctWithVotes}%`,
+          icon: BarChart3,
+          color: "text-orange-600",
+          bg: "bg-orange-50",
+        },
+        {
+          label: "Gj.snitt score",
+          value: data.summary.avgScore,
+          icon: ThumbsUp,
+          color: "text-green-600",
+          bg: "bg-green-50",
+        },
+      ]
+    : [];
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <h1 className="text-3xl font-bold">Analyse</h1>
-        <a
-          href="/api/admin/analytics?format=csv"
-          className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-        >
-          Last ned CSV
-        </a>
+        {data && (
+          <ExportButtons from={from} to={to} items={data.items} />
+        )}
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatCard title="Totale stemmer" value={totalVotes} />
-        <StatCard title="Unike retter" value={totalDishes} />
-        <StatCard title="Menypunkter" value={totalMenuItems} />
+      {/* Date filter */}
+      <div className="mb-6">
+        <DateFilter from={from} to={to} onChange={handleDateChange} />
       </div>
 
-      {/* Top dishes */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-xl font-bold mb-4">Topp retter (etter score)</h2>
-        <div className="space-y-3">
-          {topDishes.map((dish, index) => {
-            const pct = dish.total > 0 ? Math.round((dish.up / dish.total) * 100) : 0;
-
-            return (
-              <div
-                key={dish.title}
-                className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl"
-              >
-                <span className="text-lg font-bold text-gray-300 w-6">
-                  {index + 1}
-                </span>
-                {dish.imageUrl && (
-                  <img
-                    src={dish.imageUrl}
-                    alt={dish.title}
-                    className="w-10 h-10 rounded-lg object-cover"
-                  />
-                )}
-                <div className="flex-1">
-                  <div className="font-medium text-sm">{dish.title}</div>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-xs text-gray-500">
-                      😀 {dish.up} · 😐 {dish.mid} · 😞 {dish.down}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-bold text-emerald-600">
-                    {pct}% positive
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {dish.total} stemmer
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-
-          {topDishes.length === 0 && (
-            <p className="text-gray-400 text-center py-8">
-              Ingen stemmer registrert ennå
-            </p>
-          )}
+      {loading ? (
+        <div className="flex items-center justify-center py-24">
+          <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
         </div>
-      </div>
-    </div>
-  );
-}
+      ) : !data ? (
+        <p className="text-center text-gray-400 py-24">
+          Kunne ikke laste data
+        </p>
+      ) : (
+        <div className="space-y-6">
+          {/* Stat cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {stats.map((s) => (
+              <div
+                key={s.label}
+                className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div
+                    className={`w-9 h-9 rounded-lg ${s.bg} flex items-center justify-center`}
+                  >
+                    <s.icon className={`w-4 h-4 ${s.color}`} />
+                  </div>
+                </div>
+                <span className="text-2xl font-bold block">{s.value}</span>
+                <span className="text-xs text-gray-500">{s.label}</span>
+              </div>
+            ))}
+          </div>
 
-function StatCard({ title, value }: { title: string; value: number }) {
-  return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-      <div className="text-sm text-gray-500 font-medium">{title}</div>
-      <div className="text-3xl font-bold mt-1">{value}</div>
+          {/* Vote distribution */}
+          <VoteDistribution
+            up={data.voteDistribution.up}
+            mid={data.voteDistribution.mid}
+            down={data.voteDistribution.down}
+          />
+
+          {/* Trend chart */}
+          <TrendChart data={data.dailyTrend} />
+
+          {/* Category breakdown */}
+          <CategoryBreakdown data={data.categoryBreakdown} />
+
+          {/* Dish table */}
+          <DishTable dishes={data.dishes} />
+
+          {/* Engagement */}
+          <EngagementCard data={data.engagement} />
+        </div>
+      )}
     </div>
   );
 }
