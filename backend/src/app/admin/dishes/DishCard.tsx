@@ -2,10 +2,12 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Copy, Pencil, Trash2, AlertTriangle, Upload } from "lucide-react";
+import { Copy, Pencil, Trash2, Upload } from "lucide-react";
 import { AllergenPicker } from "./AllergenPicker";
 import { TagPicker } from "./TagPicker";
 import { DishUsageModal } from "./DishUsageModal";
+import { DeleteConfirmModal } from "./DeleteConfirmModal";
+import { ConfirmModal } from "./ConfirmModal";
 
 type Dish = {
   id: string;
@@ -34,15 +36,16 @@ export function DishCard({
 }) {
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteWarnings, setDeleteWarnings] = useState<string[]>([]);
   const [duplicating, setDuplicating] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [showUsage, setShowUsage] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const router = useRouter();
 
-  const handleDuplicate = async () => {
+  const confirmDuplicate = async () => {
     setDuplicating(true);
     try {
       const res = await fetch(`/api/admin/dishes/${dish.id}/duplicate`, {
@@ -51,27 +54,29 @@ export function DishCard({
       if (res.ok) router.refresh();
     } finally {
       setDuplicating(false);
+      setShowDuplicateModal(false);
     }
   };
 
-  const handleDeleteClick = async () => {
-    if (!confirmDelete) {
-      const res = await fetch(`/api/admin/dishes/${dish.id}/usage`);
-      if (res.ok) {
-        const data = await res.json();
-        const activeUsage = data.usage.filter(
-          (u: { weekStatus: string }) =>
-            u.weekStatus === "PUBLISHED" || u.weekStatus === "DRAFT"
-        );
-        if (activeUsage.length > 0) {
-          setDeleteWarning(
-            `Denne retten er brukt i ${activeUsage.length} aktive menyer. Sletting vil fjerne den fra disse menyene.`
-          );
-        }
+  const openDeleteModal = async () => {
+    setDeleteWarnings([]);
+    const res = await fetch(`/api/admin/dishes/${dish.id}/usage`);
+    if (res.ok) {
+      const data = await res.json();
+      const activeUsage = data.usage.filter(
+        (u: { weekStatus: string }) =>
+          u.weekStatus === "PUBLISHED" || u.weekStatus === "DRAFT"
+      );
+      if (activeUsage.length > 0) {
+        setDeleteWarnings([
+          `Denne retten er brukt i ${activeUsage.length} aktive menyer. Sletting vil fjerne den fra disse menyene.`,
+        ]);
       }
-      setConfirmDelete(true);
-      return;
     }
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
     setDeleting(true);
     try {
       const res = await fetch(`/api/admin/dishes/${dish.id}`, {
@@ -80,8 +85,7 @@ export function DishCard({
       if (res.ok) router.refresh();
     } finally {
       setDeleting(false);
-      setConfirmDelete(false);
-      setDeleteWarning(null);
+      setShowDeleteModal(false);
     }
   };
 
@@ -198,37 +202,19 @@ export function DishCard({
               <Pencil className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={handleDuplicate}
-              disabled={duplicating}
-              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+              onClick={() => setShowDuplicateModal(true)}
+              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
               title="Dupliser"
             >
               <Copy className="w-3.5 h-3.5" />
             </button>
             <button
-              onClick={handleDeleteClick}
-              disabled={deleting}
-              className={`p-1.5 rounded-lg transition-colors ${
-                confirmDelete
-                  ? "text-white bg-red-500 hover:bg-red-600"
-                  : "text-gray-400 hover:text-red-500 hover:bg-red-50"
-              }`}
-              title={confirmDelete ? "Bekreft sletting" : "Slett"}
+              onClick={openDeleteModal}
+              className="p-1.5 rounded-lg transition-colors text-gray-400 hover:text-red-500 hover:bg-red-50"
+              title="Slett"
             >
-              {confirmDelete && deleteWarning ? (
-                <AlertTriangle className="w-3.5 h-3.5" />
-              ) : (
-                <Trash2 className="w-3.5 h-3.5" />
-              )}
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
-            {confirmDelete && (
-              <button
-                onClick={() => { setConfirmDelete(false); setDeleteWarning(null); }}
-                className="text-[10px] text-gray-400 hover:text-gray-600"
-              >
-                Avbryt
-              </button>
-            )}
           </div>
         </div>
         {showUsage && (
@@ -236,6 +222,27 @@ export function DishCard({
             dishId={dish.id}
             dishTitle={dish.title}
             onClose={() => setShowUsage(false)}
+          />
+        )}
+        {showDeleteModal && (
+          <DeleteConfirmModal
+            title={`Slette "${dish.title}"?`}
+            description="Retten vil bli permanent slettet. Denne handlingen kan ikke angres."
+            warnings={deleteWarnings}
+            loading={deleting}
+            onConfirm={confirmDelete}
+            onCancel={() => setShowDeleteModal(false)}
+          />
+        )}
+        {showDuplicateModal && (
+          <ConfirmModal
+            icon={Copy}
+            title={`Duplisere "${dish.title}"?`}
+            description={`En kopi av retten vil bli opprettet med navnet "${dish.title} (kopi)".`}
+            confirmLabel="Dupliser"
+            loading={duplicating}
+            onConfirm={confirmDuplicate}
+            onCancel={() => setShowDuplicateModal(false)}
           />
         )}
       </>
@@ -351,42 +358,18 @@ export function DishCard({
               Rediger
             </button>
             <button
-              onClick={handleDuplicate}
-              disabled={duplicating}
-              className="inline-flex items-center justify-center gap-1 text-sm font-medium text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+              onClick={() => setShowDuplicateModal(true)}
+              className="inline-flex items-center justify-center gap-1 text-sm font-medium text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
               title="Dupliser"
             >
               <Copy className="w-3.5 h-3.5" />
             </button>
-            {!confirmDelete ? (
-              <button
-                onClick={handleDeleteClick}
-                className="inline-flex items-center justify-center gap-1 text-sm font-medium text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            ) : (
-              <div className="flex items-center gap-1">
-                {deleteWarning && (
-                  <span className="text-[10px] text-amber-600 max-w-[120px] truncate" title={deleteWarning}>
-                    <AlertTriangle className="w-3 h-3 inline" /> Aktiv bruk
-                  </span>
-                )}
-                <button
-                  onClick={handleDeleteClick}
-                  disabled={deleting}
-                  className="text-xs font-semibold text-white bg-red-500 hover:bg-red-600 px-2 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {deleting ? "..." : "Bekreft"}
-                </button>
-                <button
-                  onClick={() => { setConfirmDelete(false); setDeleteWarning(null); }}
-                  className="text-xs text-gray-500 hover:bg-gray-100 px-2 py-1.5 rounded-lg transition-colors"
-                >
-                  Avbryt
-                </button>
-              </div>
-            )}
+            <button
+              onClick={openDeleteModal}
+              className="inline-flex items-center justify-center gap-1 text-sm font-medium text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </div>
@@ -396,6 +379,27 @@ export function DishCard({
           dishId={dish.id}
           dishTitle={dish.title}
           onClose={() => setShowUsage(false)}
+        />
+      )}
+      {showDeleteModal && (
+        <DeleteConfirmModal
+          title={`Slette "${dish.title}"?`}
+          description="Retten vil bli permanent slettet. Denne handlingen kan ikke angres."
+          warnings={deleteWarnings}
+          loading={deleting}
+          onConfirm={confirmDelete}
+          onCancel={() => setShowDeleteModal(false)}
+        />
+      )}
+      {showDuplicateModal && (
+        <ConfirmModal
+          icon={Copy}
+          title={`Duplisere "${dish.title}"?`}
+          description={`En kopi av retten vil bli opprettet med navnet "${dish.title} (kopi)".`}
+          confirmLabel="Dupliser"
+          loading={duplicating}
+          onConfirm={confirmDuplicate}
+          onCancel={() => setShowDuplicateModal(false)}
         />
       )}
     </>
