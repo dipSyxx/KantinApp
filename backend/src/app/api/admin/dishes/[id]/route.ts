@@ -72,10 +72,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     existing.imageUrl !== result.data.imageUrl &&
     existing.imageUrl.includes(".vercel-storage.com")
   ) {
-    try {
-      await del(existing.imageUrl);
-    } catch {
-      // Old blob may not exist
+    const othersUsingSameImage = await prisma.dish.count({
+      where: { imageUrl: existing.imageUrl, id: { not: id } },
+    });
+    if (othersUsingSameImage === 0) {
+      try {
+        await del(existing.imageUrl);
+      } catch {
+        // Old blob may not exist
+      }
     }
   }
 
@@ -103,10 +108,15 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   if (!existing) return notFound("Dish not found");
 
   if (existing.imageUrl?.includes(".vercel-storage.com")) {
-    try {
-      await del(existing.imageUrl);
-    } catch {
-      // Blob may already be deleted
+    const othersUsingSameImage = await prisma.dish.count({
+      where: { imageUrl: existing.imageUrl, id: { not: id } },
+    });
+    if (othersUsingSameImage === 0) {
+      try {
+        await del(existing.imageUrl);
+      } catch {
+        // Blob may already be deleted
+      }
     }
   }
 

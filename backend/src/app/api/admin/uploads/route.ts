@@ -66,12 +66,16 @@ export async function POST(request: NextRequest) {
       select: { imageUrl: true },
     });
 
-    // Delete old blob if it's a Vercel Blob URL
     if (existingDish?.imageUrl?.includes(".vercel-storage.com")) {
-      try {
-        await del(existingDish.imageUrl);
-      } catch {
-        // Old blob may not exist, ignore
+      const othersUsingSameImage = await prisma.dish.count({
+        where: { imageUrl: existingDish.imageUrl, id: { not: dishId } },
+      });
+      if (othersUsingSameImage === 0) {
+        try {
+          await del(existingDish.imageUrl);
+        } catch {
+          // Old blob may not exist, ignore
+        }
       }
     }
 
@@ -112,16 +116,22 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
-  // Only delete Vercel Blob URLs
   if (url.includes(".vercel-storage.com")) {
-    try {
-      await del(url);
-    } catch {
-      // Blob may already be deleted
+    const othersUsingSameImage = await prisma.dish.count({
+      where: {
+        imageUrl: url,
+        ...(dishId ? { id: { not: dishId } } : {}),
+      },
+    });
+    if (othersUsingSameImage === 0) {
+      try {
+        await del(url);
+      } catch {
+        // Blob may already be deleted
+      }
     }
   }
 
-  // If dishId provided, clear the dish's imageUrl
   if (dishId) {
     await prisma.dish.update({
       where: { id: dishId },

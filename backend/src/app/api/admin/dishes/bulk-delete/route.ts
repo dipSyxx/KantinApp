@@ -53,12 +53,21 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const deletingIds = dishes.map((d) => d.id);
   for (const dish of dishes) {
     if (dish.imageUrl?.includes(".vercel-storage.com")) {
-      try {
-        await del(dish.imageUrl);
-      } catch {
-        // ignore
+      const othersUsingSameImage = await prisma.dish.count({
+        where: {
+          imageUrl: dish.imageUrl,
+          id: { notIn: deletingIds },
+        },
+      });
+      if (othersUsingSameImage === 0) {
+        try {
+          await del(dish.imageUrl);
+        } catch {
+          // ignore
+        }
       }
     }
   }
