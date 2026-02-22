@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { notFound } from "@/lib/errors";
+import { requireUser } from "@/lib/auth";
+import { getSchoolScope } from "@/lib/school";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -12,19 +14,23 @@ const PUBLISHED_ITEM_FILTER = {
   },
 };
 
-export async function GET(_request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  const { user, error: authError } = await requireUser(request);
+  if (authError) return authError;
+
+  const { schoolId, error: schoolError } = getSchoolScope(user, request);
+  if (schoolError) return schoolError;
+
   const { id } = await params;
 
   const dish = await prisma.dish.findUnique({
-    where: { id },
+    where: { id, schoolId },
     include: {
       menuItems: {
         where: PUBLISHED_ITEM_FILTER,
         orderBy: [{ menuDay: { date: "desc" } }, { createdAt: "desc" }],
         take: 1,
-        select: {
-          price: true,
-        },
+        select: { price: true },
       },
     },
   });

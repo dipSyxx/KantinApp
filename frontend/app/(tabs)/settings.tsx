@@ -85,7 +85,9 @@ export default function SettingsScreen() {
             </Text>
           </View>
           <Text className="text-base text-gray-900">KantinApp v1.0.0</Text>
-          <Text className="text-sm text-gray-500">Hamar Katedralskole</Text>
+          <Text className="text-sm text-gray-500">
+            {user?.school?.name ?? "Innlandet fylkeskommune"}
+          </Text>
         </View>
 
         {/* Logout */}

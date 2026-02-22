@@ -6,18 +6,14 @@ const { auth } = NextAuth(authConfig);
 
 const PUBLIC_API_ROUTES = [
   "/api/health",
-  "/api/menu/week",
-  "/api/menu/day",
-  "/api/dishes",
+  "/api/schools",
 ];
 
 const PUBLIC_API_PREFIXES = [
   "/api/auth/",
-  "/api/menu-item/",
-  "/api/dishes/",
 ];
 
-const ADMIN_ROLES = new Set(["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
+const ADMIN_ROLES = new Set(["CANTEEN_ADMIN", "SCHOOL_ADMIN", "SUPER_ADMIN"]);
 
 const ALLOWED_ORIGINS = [
   "http://localhost:3000",

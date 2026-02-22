@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { currentISOWeek } from "@/lib/week";
 import { validateQuery } from "@/lib/validate";
 import { notFound } from "@/lib/errors";
+import { requireUser } from "@/lib/auth";
+import { getSchoolScope } from "@/lib/school";
 
 const querySchema = z.object({
   year: z
@@ -17,6 +19,12 @@ const querySchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
+  const { user, error: authError } = await requireUser(request);
+  if (authError) return authError;
+
+  const { schoolId, error: schoolError } = getSchoolScope(user, request);
+  if (schoolError) return schoolError;
+
   const result = validateQuery(request, querySchema);
   if (result.error) return result.error;
 
@@ -27,9 +35,10 @@ export async function GET(request: NextRequest) {
 
   const weekMenu = await prisma.weekMenu.findUnique({
     where: {
-      year_weekNumber: {
+      year_weekNumber_schoolId: {
         year: targetYear,
         weekNumber: targetWeek,
+        schoolId,
       },
       status: "PUBLISHED",
     },
@@ -65,7 +74,6 @@ export async function GET(request: NextRequest) {
     return notFound("Menu for this week is not published yet");
   }
 
-  // Transform response
   const response = {
     id: weekMenu.id,
     year: weekMenu.year,

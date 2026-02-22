@@ -3,6 +3,9 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireUser, requireRole } from "@/lib/auth";
 import { validateBody } from "@/lib/validate";
+import { getSchoolScope } from "@/lib/school";
+
+const ADMIN_ROLES = ["CANTEEN_ADMIN", "SCHOOL_ADMIN", "SUPER_ADMIN"] as const;
 
 const createDishSchema = z.object({
   title: z.string().min(1).max(200),
@@ -16,10 +19,14 @@ export async function GET(request: NextRequest) {
   const { user, error: authError } = await requireUser(request);
   if (authError) return authError;
 
-  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
+  const roleError = requireRole(user!.role, [...ADMIN_ROLES]);
   if (roleError) return roleError;
 
+  const { schoolId, error: schoolError } = getSchoolScope(user!, request);
+  if (schoolError) return schoolError;
+
   const dishes = await prisma.dish.findMany({
+    where: { schoolId },
     orderBy: { createdAt: "desc" },
     include: {
       _count: { select: { menuItems: true } },
@@ -33,14 +40,17 @@ export async function POST(request: NextRequest) {
   const { user, error: authError } = await requireUser(request);
   if (authError) return authError;
 
-  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
+  const roleError = requireRole(user!.role, [...ADMIN_ROLES]);
   if (roleError) return roleError;
+
+  const { schoolId, error: schoolError } = getSchoolScope(user!, request);
+  if (schoolError) return schoolError;
 
   const result = await validateBody(request, createDishSchema);
   if (result.error) return result.error;
 
   const dish = await prisma.dish.create({
-    data: result.data,
+    data: { ...result.data, schoolId },
   });
 
   return NextResponse.json(dish, { status: 201 });

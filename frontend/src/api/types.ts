@@ -89,11 +89,19 @@ export type VoteResponse = {
   stats: VoteStats;
 };
 
+export type SchoolInfo = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
 export type AuthUser = {
   id: string;
   name: string;
   email: string;
   role: string;
+  schoolId: string | null;
+  school: SchoolInfo | null;
 };
 
 export type AuthResponse = {

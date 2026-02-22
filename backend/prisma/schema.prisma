@@ -14,6 +14,7 @@ enum Role {
   STUDENT
   CANTEEN_ADMIN
   SCHOOL_ADMIN
+  SUPER_ADMIN
 }
 
 enum MenuStatus {
@@ -38,6 +39,19 @@ enum ItemStatus {
 
 // ─── Models ──────────────────────────────────────────────
 
+model School {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+
+  users     User[]
+  dishes    Dish[]
+  weekMenus WeekMenu[]
+
+  @@map("schools")
+}
+
 model User {
   id         String   @id @default(cuid())
   name       String
@@ -45,10 +59,12 @@ model User {
   password   String
   externalId String?  @unique
   role       Role     @default(STUDENT)
+  schoolId   String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  votes Vote[]
+  school School? @relation(fields: [schoolId], references: [id])
+  votes  Vote[]
 
   @@map("users")
 }
@@ -59,18 +75,20 @@ model WeekMenu {
   weekNumber  Int
   status      MenuStatus @default(DRAFT)
   publishedAt DateTime?
+  schoolId    String
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  days MenuDay[]
+  school School   @relation(fields: [schoolId], references: [id])
+  days   MenuDay[]
 
-  @@unique([year, weekNumber])
+  @@unique([year, weekNumber, schoolId])
   @@map("week_menus")
 }
 
 model MenuDay {
   id         String   @id @default(cuid())
-  date       DateTime @unique @db.Date
+  date       DateTime @db.Date
   weekMenuId String
   isOpen     Boolean  @default(true)
   notes      String?
@@ -79,6 +97,7 @@ model MenuDay {
   weekMenu WeekMenu   @relation(fields: [weekMenuId], references: [id], onDelete: Cascade)
   items    MenuItem[]
 
+  @@unique([weekMenuId, date])
   @@map("menu_days")
 }
 
@@ -89,9 +108,11 @@ model Dish {
   imageUrl    String?
   allergens   String[] @default([])
   tags        String[] @default([])
+  schoolId    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  school    School     @relation(fields: [schoolId], references: [id])
   menuItems MenuItem[]
 
   @@map("dishes")
@@ -136,6 +157,7 @@ model VerificationToken {
   token      String   // bcrypt hash of 6-digit code
   name       String   // temp store user name
   password   String   // temp store hashed password
+  schoolId   String   // school the user is registering for
   expires    DateTime
   createdAt  DateTime @default(now())
 

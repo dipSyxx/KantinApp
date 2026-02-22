@@ -4,11 +4,19 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { forbidden, unauthorized } from "@/lib/errors";
 
-type AuthenticatedUser = {
+type SchoolInfo = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+export type AuthenticatedUser = {
   id: string;
   name: string;
   email: string;
   role: Role;
+  schoolId: string | null;
+  school: SchoolInfo | null;
 };
 
 async function resolveAuthenticatedUser(): Promise<AuthenticatedUser | null> {
@@ -21,7 +29,14 @@ async function resolveAuthenticatedUser(): Promise<AuthenticatedUser | null> {
 
   return prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, email: true, role: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      schoolId: true,
+      school: { select: { id: true, name: true, slug: true } },
+    },
   });
 }
 

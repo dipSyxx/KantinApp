@@ -5,6 +5,9 @@ import { prisma } from "@/lib/db";
 import { requireUser, requireRole } from "@/lib/auth";
 import { validateBody } from "@/lib/validate";
 import { notFound } from "@/lib/errors";
+import { getSchoolScope } from "@/lib/school";
+
+const ADMIN_ROLES = ["CANTEEN_ADMIN", "SCHOOL_ADMIN", "SUPER_ADMIN"] as const;
 
 const updateDishSchema = z.object({
   title: z.string().min(1).max(200).optional(),
@@ -22,11 +25,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   const { user, error: authError } = await requireUser(request);
   if (authError) return authError;
 
-  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
+  const roleError = requireRole(user!.role, [...ADMIN_ROLES]);
   if (roleError) return roleError;
 
+  const { schoolId, error: schoolError } = getSchoolScope(user!, request);
+  if (schoolError) return schoolError;
+
   const dish = await prisma.dish.findUnique({
-    where: { id },
+    where: { id, schoolId },
     include: {
       menuItems: {
         include: {
@@ -48,16 +54,18 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { user, error: authError } = await requireUser(request);
   if (authError) return authError;
 
-  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
+  const roleError = requireRole(user!.role, [...ADMIN_ROLES]);
   if (roleError) return roleError;
+
+  const { schoolId, error: schoolError } = getSchoolScope(user!, request);
+  if (schoolError) return schoolError;
 
   const result = await validateBody(request, updateDishSchema);
   if (result.error) return result.error;
 
-  const existing = await prisma.dish.findUnique({ where: { id } });
+  const existing = await prisma.dish.findUnique({ where: { id, schoolId } });
   if (!existing) return notFound("Dish not found");
 
-  // If imageUrl is being changed or set to null, delete old blob
   if (
     result.data.imageUrl !== undefined &&
     existing.imageUrl &&
@@ -67,7 +75,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     try {
       await del(existing.imageUrl);
     } catch {
-      // Old blob may not exist, ignore
+      // Old blob may not exist
     }
   }
 
@@ -85,18 +93,20 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   const { user, error: authError } = await requireUser(request);
   if (authError) return authError;
 
-  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
+  const roleError = requireRole(user!.role, [...ADMIN_ROLES]);
   if (roleError) return roleError;
 
-  const existing = await prisma.dish.findUnique({ where: { id } });
+  const { schoolId, error: schoolError } = getSchoolScope(user!, request);
+  if (schoolError) return schoolError;
+
+  const existing = await prisma.dish.findUnique({ where: { id, schoolId } });
   if (!existing) return notFound("Dish not found");
 
-  // Delete blob image if it's stored in Vercel Blob
   if (existing.imageUrl?.includes(".vercel-storage.com")) {
     try {
       await del(existing.imageUrl);
     } catch {
-      // Blob may already be deleted, ignore
+      // Blob may already be deleted
     }
   }
 

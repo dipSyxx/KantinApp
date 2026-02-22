@@ -1,5 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  FlatList,
+  Modal,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { Ionicons } from "@expo/vector-icons";
@@ -7,24 +15,27 @@ import { useRouter } from "expo-router";
 import { useRegister, useVerify } from "@/api/hooks/useRegister";
 import { useLogin } from "@/api/hooks/useAuth";
 import { useAuth } from "@/context/AuthContext";
+import { useSchools } from "@/api/hooks/useSchools";
+import type { SchoolInfo } from "@/api/types";
 
 const ALLOWED_DOMAIN = "@innlandetfylke.no";
 const OTP_LENGTH = 6;
-const RESEND_COOLDOWN = 60; // seconds
+const RESEND_COOLDOWN = 60;
 
 type Step = "form" | "otp";
 
 export default function RegisterScreen() {
   const [step, setStep] = useState<Step>("form");
 
-  // Form fields
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [selectedSchool, setSelectedSchool] = useState<SchoolInfo | null>(null);
+  const [schoolPickerOpen, setSchoolPickerOpen] = useState(false);
+  const [schoolSearch, setSchoolSearch] = useState("");
   const [formError, setFormError] = useState("");
 
-  // OTP fields
   const [otpDigits, setOtpDigits] = useState<string[]>(
     Array(OTP_LENGTH).fill(""),
   );
@@ -37,15 +48,20 @@ export default function RegisterScreen() {
   const loginMutation = useLogin();
   const { refresh } = useAuth();
   const router = useRouter();
+  const { data: schools = [] } = useSchools();
 
-  // Resend countdown
+  const filteredSchools = schoolSearch.trim()
+    ? schools.filter((s) =>
+        s.name.toLowerCase().includes(schoolSearch.toLowerCase()),
+      )
+    : schools;
+
   useEffect(() => {
     if (resendTimer <= 0) return;
     const id = setTimeout(() => setResendTimer((t) => t - 1), 1000);
     return () => clearTimeout(id);
   }, [resendTimer]);
 
-  // ─── Step 1: Register ──────────────────────────────────
   const handleRegister = async () => {
     setFormError("");
 
@@ -55,6 +71,10 @@ export default function RegisterScreen() {
     }
     if (name.trim().length < 2) {
       setFormError("Navn må være minst 2 tegn.");
+      return;
+    }
+    if (!selectedSchool) {
+      setFormError("Velg skolen din.");
       return;
     }
     if (!email.trim()) {
@@ -79,6 +99,7 @@ export default function RegisterScreen() {
         name: name.trim(),
         email: email.trim().toLowerCase(),
         password,
+        schoolId: selectedSchool.id,
       });
       setResendTimer(RESEND_COOLDOWN);
       setStep("otp");
@@ -90,7 +111,6 @@ export default function RegisterScreen() {
     }
   };
 
-  // ─── Step 2: Verify OTP ────────────────────────────────
   const handleOtpChange = useCallback((index: number, value: string) => {
     const digit = value.replace(/[^0-9]/g, "").slice(-1);
 
@@ -143,7 +163,7 @@ export default function RegisterScreen() {
   };
 
   const handleResend = async () => {
-    if (resendTimer > 0) return;
+    if (resendTimer > 0 || !selectedSchool) return;
     setOtpError("");
 
     try {
@@ -151,6 +171,7 @@ export default function RegisterScreen() {
         name: name.trim(),
         email: email.trim().toLowerCase(),
         password,
+        schoolId: selectedSchool.id,
       });
       setResendTimer(RESEND_COOLDOWN);
       setOtpDigits(Array(OTP_LENGTH).fill(""));
@@ -160,7 +181,6 @@ export default function RegisterScreen() {
     }
   };
 
-  // ─── Render ────────────────────────────────────────────
   return (
     <SafeAreaView className="flex-1 bg-white">
       <KeyboardAwareScrollView
@@ -181,7 +201,7 @@ export default function RegisterScreen() {
             </Text>
             <Text className="text-base text-gray-500 mt-1 text-center">
               {step === "form"
-                ? "Hamar Katedralskole"
+                ? "Innlandet fylkeskommune"
                 : `Vi sendte en kode til ${email}`}
             </Text>
             {step === "otp" && (
@@ -192,7 +212,6 @@ export default function RegisterScreen() {
           </View>
 
           {step === "form" ? (
-            /* ─── Registration Form ─── */
             <View>
               {/* Name */}
               <View className="mb-3">
@@ -210,6 +229,107 @@ export default function RegisterScreen() {
                   placeholderTextColor="#999"
                 />
               </View>
+
+              {/* School Picker */}
+              <View className="mb-3">
+                <Text className="text-sm font-medium text-gray-700 mb-1">
+                  Velg skole
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setSchoolPickerOpen(true)}
+                  className="border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 flex-row items-center justify-between"
+                >
+                  <Text
+                    className={`text-base ${selectedSchool ? "text-gray-900" : "text-gray-400"}`}
+                  >
+                    {selectedSchool?.name ?? "Trykk for å velge skole..."}
+                  </Text>
+                  <Ionicons name="chevron-down" size={18} color="#9CA3AF" />
+                </TouchableOpacity>
+              </View>
+
+              {/* School Picker Modal */}
+              <Modal
+                visible={schoolPickerOpen}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setSchoolPickerOpen(false)}
+              >
+                <SafeAreaView className="flex-1 bg-white">
+                  <View className="px-4 pt-4 pb-2 border-b border-gray-200">
+                    <View className="flex-row items-center justify-between mb-3">
+                      <Text className="text-xl font-bold text-gray-900">
+                        Velg skole
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSchoolPickerOpen(false);
+                          setSchoolSearch("");
+                        }}
+                      >
+                        <Ionicons name="close" size={24} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+                    <TextInput
+                      value={schoolSearch}
+                      onChangeText={setSchoolSearch}
+                      placeholder="Søk etter skole..."
+                      autoFocus
+                      className="border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900 bg-gray-50"
+                      placeholderTextColor="#999"
+                    />
+                  </View>
+                  <FlatList
+                    data={filteredSchools}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={{ paddingBottom: 40 }}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSelectedSchool(item);
+                          setSchoolPickerOpen(false);
+                          setSchoolSearch("");
+                        }}
+                        className={`px-5 py-4 border-b border-gray-100 flex-row items-center ${
+                          selectedSchool?.id === item.id ? "bg-emerald-50" : ""
+                        }`}
+                      >
+                        <Ionicons
+                          name="school-outline"
+                          size={20}
+                          color={
+                            selectedSchool?.id === item.id
+                              ? "#1B7A3D"
+                              : "#9CA3AF"
+                          }
+                        />
+                        <Text
+                          className={`text-base ml-3 ${
+                            selectedSchool?.id === item.id
+                              ? "text-emerald-700 font-semibold"
+                              : "text-gray-900"
+                          }`}
+                        >
+                          {item.name}
+                        </Text>
+                        {selectedSchool?.id === item.id && (
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={20}
+                            color="#1B7A3D"
+                            style={{ marginLeft: "auto" }}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    )}
+                    ListEmptyComponent={
+                      <Text className="text-gray-400 text-center py-8">
+                        Ingen skoler funnet
+                      </Text>
+                    }
+                  />
+                </SafeAreaView>
+              </Modal>
 
               {/* Email */}
               <View className="mb-3">
@@ -268,14 +388,12 @@ export default function RegisterScreen() {
                 />
               </View>
 
-              {/* Error */}
               {formError ? (
                 <View className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
                   <Text className="text-red-600 text-sm">{formError}</Text>
                 </View>
               ) : null}
 
-              {/* Submit */}
               <TouchableOpacity
                 onPress={handleRegister}
                 disabled={registerMutation.isPending}
@@ -292,7 +410,6 @@ export default function RegisterScreen() {
                 </Text>
               </TouchableOpacity>
 
-              {/* Link to login */}
               <TouchableOpacity
                 onPress={() => router.back()}
                 className="mt-5 items-center"
@@ -306,14 +423,11 @@ export default function RegisterScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            /* ─── OTP Verification ─── */
             <View>
-              {/* OTP icon */}
               <View className="items-center mb-6">
                 <Ionicons name="mail-outline" size={48} color="#1B7A3D" />
               </View>
 
-              {/* OTP input boxes */}
               <View className="flex-row justify-center gap-2 mb-4">
                 {otpDigits.map((digit, i) => (
                   <TextInput
@@ -345,7 +459,6 @@ export default function RegisterScreen() {
                 ))}
               </View>
 
-              {/* Error */}
               {otpError ? (
                 <View className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
                   <Text className="text-red-600 text-base text-center">
@@ -354,7 +467,6 @@ export default function RegisterScreen() {
                 </View>
               ) : null}
 
-              {/* Verify button */}
               <TouchableOpacity
                 onPress={handleVerify}
                 disabled={
@@ -375,7 +487,6 @@ export default function RegisterScreen() {
                 </Text>
               </TouchableOpacity>
 
-              {/* Resend */}
               <View className="items-center mt-5">
                 <Text className="text-base text-gray-500 mb-2">
                   Fikk du ikke koden?
@@ -396,7 +507,6 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Back to form */}
               <TouchableOpacity
                 onPress={() => {
                   setStep("form");

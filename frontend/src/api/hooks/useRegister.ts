@@ -6,6 +6,7 @@ type RegisterInput = {
   name: string;
   email: string;
   password: string;
+  schoolId: string;
 };
 
 type RegisterResponse = {
@@ -20,11 +21,12 @@ type VerifyInput = {
 
 export function useRegister() {
   return useMutation<RegisterResponse, Error, RegisterInput>({
-    mutationFn: async ({ name, email, password }) => {
+    mutationFn: async ({ name, email, password, schoolId }) => {
       const { data } = await api.post("/api/auth/register", {
         name,
         email,
         password,
+        schoolId,
       });
       return data;
     },

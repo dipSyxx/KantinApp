@@ -48,15 +48,6 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View className="px-8 py-8">
-          <TouchableOpacity
-            onPress={() => router.push("/(tabs)")}
-            className="self-start mb-6 p-2 -ml-2"
-            accessibilityRole="button"
-            accessibilityLabel="Tilbake til hovedsiden"
-          >
-            <Ionicons name="arrow-back" size={26} color="#1B7A3D" />
-          </TouchableOpacity>
-
           {/* Logo area */}
           <View className="items-center mb-10">
             <View className="w-20 h-20 rounded-full bg-brand-green items-center justify-center mb-4">
@@ -66,7 +57,7 @@ export default function LoginScreen() {
               KantinApp
             </Text>
             <Text className="text-base text-gray-500 mt-1">
-              Hamar Katedralskole
+              Innlandet fylkeskommune
             </Text>
           </View>
 

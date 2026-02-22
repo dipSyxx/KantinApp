@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   const { user, error: authError } = await requireUser(request);
   if (authError) return authError;
 
-  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
+  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN", "SUPER_ADMIN"]);
   if (roleError) return roleError;
 
   const formData = await request.formData();
@@ -99,7 +99,7 @@ export async function DELETE(request: NextRequest) {
   const { user, error: authError } = await requireUser(request);
   if (authError) return authError;
 
-  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
+  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN", "SUPER_ADMIN"]);
   if (roleError) return roleError;
 
   const body = await request.json();

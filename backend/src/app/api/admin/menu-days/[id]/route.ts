@@ -17,7 +17,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   const { user, error: authError } = await requireUser(request);
   if (authError) return authError;
 
-  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
+  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN", "SUPER_ADMIN"]);
   if (roleError) return roleError;
 
   const existing = await prisma.menuDay.findUnique({ where: { id } });

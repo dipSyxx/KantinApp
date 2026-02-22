@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
           throw new Error("Unauthorized");
         }
 
-        const roleError = requireRole(user.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
+        const roleError = requireRole(user.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN", "SUPER_ADMIN"]);
         if (roleError) {
           throw new Error("Forbidden: insufficient role");
         }

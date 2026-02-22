@@ -5,6 +5,9 @@ import { requireUser, requireRole } from "@/lib/auth";
 import { validateBody } from "@/lib/validate";
 import { notFound, conflict } from "@/lib/errors";
 import { weekDates } from "@/lib/week";
+import { getSchoolScope } from "@/lib/school";
+
+const ADMIN_ROLES = ["CANTEEN_ADMIN", "SCHOOL_ADMIN", "SUPER_ADMIN"] as const;
 
 const copySchema = z.object({
   year: z.number().int().min(2024).max(2100),
@@ -19,8 +22,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const { user, error: authError } = await requireUser(request);
   if (authError) return authError;
 
-  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
+  const roleError = requireRole(user!.role, [...ADMIN_ROLES]);
   if (roleError) return roleError;
+
+  const { schoolId, error: schoolError } = getSchoolScope(user!, request);
+  if (schoolError) return schoolError;
 
   const result = await validateBody(request, copySchema);
   if (result.error) return result.error;
@@ -28,7 +34,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const { year, weekNumber } = result.data;
 
   const source = await prisma.weekMenu.findUnique({
-    where: { id },
+    where: { id, schoolId },
     include: {
       days: {
         orderBy: { date: "asc" },
@@ -45,7 +51,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   if (!source) return notFound("Source week menu not found");
 
   const existing = await prisma.weekMenu.findUnique({
-    where: { year_weekNumber: { year, weekNumber } },
+    where: { year_weekNumber_schoolId: { year, weekNumber, schoolId } },
   });
   if (existing) return conflict(`Week menu for ${year} W${weekNumber} already exists`);
 
@@ -56,6 +62,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       year,
       weekNumber,
       status: "DRAFT",
+      schoolId,
       days: {
         create: dates.map((date, i) => {
           const sourceDay = source.days[i];

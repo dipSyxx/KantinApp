@@ -4,6 +4,9 @@ import { del } from "@vercel/blob";
 import { prisma } from "@/lib/db";
 import { requireUser, requireRole } from "@/lib/auth";
 import { validateBody } from "@/lib/validate";
+import { getSchoolScope } from "@/lib/school";
+
+const ADMIN_ROLES = ["CANTEEN_ADMIN", "SCHOOL_ADMIN", "SUPER_ADMIN"] as const;
 
 const bulkDeleteSchema = z.object({
   ids: z.array(z.string()).min(1).max(100),
@@ -13,8 +16,11 @@ export async function POST(request: NextRequest) {
   const { user, error: authError } = await requireUser(request);
   if (authError) return authError;
 
-  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
+  const roleError = requireRole(user!.role, [...ADMIN_ROLES]);
   if (roleError) return roleError;
+
+  const { schoolId, error: schoolError } = getSchoolScope(user!, request);
+  if (schoolError) return schoolError;
 
   const result = await validateBody(request, bulkDeleteSchema);
   if (result.error) return result.error;
@@ -22,7 +28,7 @@ export async function POST(request: NextRequest) {
   const { ids } = result.data;
 
   const dishes = await prisma.dish.findMany({
-    where: { id: { in: ids } },
+    where: { id: { in: ids }, schoolId },
     select: {
       id: true,
       title: true,
@@ -57,8 +63,9 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const schoolScopedIds = dishes.map((d) => d.id);
   const { count } = await prisma.dish.deleteMany({
-    where: { id: { in: ids } },
+    where: { id: { in: schoolScopedIds } },
   });
 
   return NextResponse.json({ deleted: count, warnings });

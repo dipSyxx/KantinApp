@@ -5,6 +5,9 @@ import { requireUser, requireRole } from "@/lib/auth";
 import { validateBody } from "@/lib/validate";
 import { conflict } from "@/lib/errors";
 import { weekDates } from "@/lib/week";
+import { getSchoolScope } from "@/lib/school";
+
+const ADMIN_ROLES = ["CANTEEN_ADMIN", "SCHOOL_ADMIN", "SUPER_ADMIN"] as const;
 
 const createWeekMenuSchema = z.object({
   year: z.number().int().min(2024).max(2100),
@@ -15,10 +18,14 @@ export async function GET(request: NextRequest) {
   const { user, error: authError } = await requireUser(request);
   if (authError) return authError;
 
-  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
+  const roleError = requireRole(user!.role, [...ADMIN_ROLES]);
   if (roleError) return roleError;
 
+  const { schoolId, error: schoolError } = getSchoolScope(user!, request);
+  if (schoolError) return schoolError;
+
   const weekMenus = await prisma.weekMenu.findMany({
+    where: { schoolId },
     orderBy: [{ year: "desc" }, { weekNumber: "desc" }],
     include: {
       days: {
@@ -38,24 +45,25 @@ export async function POST(request: NextRequest) {
   const { user, error: authError } = await requireUser(request);
   if (authError) return authError;
 
-  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
+  const roleError = requireRole(user!.role, [...ADMIN_ROLES]);
   if (roleError) return roleError;
+
+  const { schoolId, error: schoolError } = getSchoolScope(user!, request);
+  if (schoolError) return schoolError;
 
   const result = await validateBody(request, createWeekMenuSchema);
   if (result.error) return result.error;
 
   const { year, weekNumber } = result.data;
 
-  // Check if already exists
   const existing = await prisma.weekMenu.findUnique({
-    where: { year_weekNumber: { year, weekNumber } },
+    where: { year_weekNumber_schoolId: { year, weekNumber, schoolId } },
   });
 
   if (existing) {
     return conflict(`Week menu for ${year} W${weekNumber} already exists`);
   }
 
-  // Create week menu with 5 days (Mon-Fri) using ISO week calculation
   const dates = weekDates(year, weekNumber);
 
   const weekMenu = await prisma.weekMenu.create({
@@ -63,6 +71,7 @@ export async function POST(request: NextRequest) {
       year,
       weekNumber,
       status: "DRAFT",
+      schoolId,
       days: {
         create: dates.map((date) => ({
           date,

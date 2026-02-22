@@ -59,7 +59,7 @@ export default function WeekMenuScreen() {
           </View>
           <View className="flex-1">
             <Text className="text-sm text-gray-500 font-medium">
-              Hamar Katedralskole
+              {user?.school?.name ?? "KantinApp"}
             </Text>
           </View>
         </View>

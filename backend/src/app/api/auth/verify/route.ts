@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
       email: emailLower,
       password: verificationToken.password,
       role: "STUDENT",
+      schoolId: verificationToken.schoolId,
     },
   });
 

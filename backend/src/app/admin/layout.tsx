@@ -1,18 +1,43 @@
 import Link from "next/link";
 import Image from "next/image";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/db";
 import { LogoutButton } from "./LogoutButton";
+import { SchoolSelector } from "./SchoolSelector";
 
 async function getUser() {
   const session = await auth();
-  if (!session?.user) {
-    return null;
-  }
+  if (!session?.user?.id) return null;
 
-  return {
-    id: session.user.id,
-    role: session.user.role,
-  };
+  return prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      role: true,
+      schoolId: true,
+      school: { select: { id: true, name: true, slug: true } },
+    },
+  });
+}
+
+async function getSchools() {
+  return prisma.school.findMany({
+    select: { id: true, name: true, slug: true },
+    orderBy: { name: "asc" },
+  });
+}
+
+function roleLabel(role: string) {
+  switch (role) {
+    case "SUPER_ADMIN":
+      return "Super-admin";
+    case "CANTEEN_ADMIN":
+      return "Kantine-admin";
+    case "SCHOOL_ADMIN":
+      return "Skole-admin";
+    default:
+      return role;
+  }
 }
 
 export default async function AdminLayout({
@@ -21,6 +46,8 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const user = await getUser();
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+  const schools = isSuperAdmin ? await getSchools() : [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -49,11 +76,17 @@ export default async function AdminLayout({
               </div>
             </div>
 
-            {/* User info + logout */}
             {user && (
               <div className="flex items-center gap-3">
+                {isSuperAdmin ? (
+                  <SchoolSelector schools={schools} />
+                ) : user.school ? (
+                  <span className="text-xs text-gray-400 hidden sm:inline">
+                    {user.school.name}
+                  </span>
+                ) : null}
                 <span className="text-sm text-gray-500 hidden sm:inline">
-                  {user.role === "CANTEEN_ADMIN" ? "Kantine-admin" : "Skole-admin"}
+                  {roleLabel(user.role)}
                 </span>
                 <LogoutButton />
               </div>
@@ -62,7 +95,6 @@ export default async function AdminLayout({
         </div>
       </nav>
 
-      {/* Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {children}
       </main>

@@ -19,6 +19,7 @@ const registerSchema = z.object({
       `E-post må slutte med ${ALLOWED_DOMAIN}`
     ),
   password: z.string().min(8, "Passord må være minst 8 tegn"),
+  schoolId: z.string().min(1, "Velg en skole"),
 });
 
 function generateCode(): string {
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
   const result = await validateBody(request, registerSchema);
   if (result.error) return result.error;
 
-  const { name, email, password } = result.data;
+  const { name, email, password, schoolId } = result.data;
   const emailLower = email.toLowerCase();
 
   // Check env vars
@@ -44,6 +45,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "E-postsending er ikke konfigurert (sjekk MAILEROO_* env)." },
       { status: 500 }
+    );
+  }
+
+  // Validate school exists
+  const school = await prisma.school.findUnique({ where: { id: schoolId } });
+  if (!school) {
+    return NextResponse.json(
+      { error: "Ugyldig skole valgt." },
+      { status: 400 }
     );
   }
 
@@ -80,6 +90,7 @@ export async function POST(request: NextRequest) {
       token: tokenHash,
       name,
       password: passwordHash,
+      schoolId,
       expires,
     },
   });

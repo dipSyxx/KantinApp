@@ -1,5 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireUser } from "@/lib/auth";
+import { getSchoolScope } from "@/lib/school";
 
 const PUBLISHED_ITEM_FILTER = {
   menuDay: {
@@ -9,9 +11,16 @@ const PUBLISHED_ITEM_FILTER = {
   },
 };
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const { user, error: authError } = await requireUser(request);
+  if (authError) return authError;
+
+  const { schoolId, error: schoolError } = getSchoolScope(user, request);
+  if (schoolError) return schoolError;
+
   const dishes = await prisma.dish.findMany({
     where: {
+      schoolId,
       menuItems: {
         some: PUBLISHED_ITEM_FILTER,
       },

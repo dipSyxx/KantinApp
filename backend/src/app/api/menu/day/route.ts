@@ -3,26 +3,33 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { validateQuery } from "@/lib/validate";
 import { notFound } from "@/lib/errors";
+import { requireUser } from "@/lib/auth";
+import { getSchoolScope } from "@/lib/school";
 
 const querySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD format"),
 });
 
 export async function GET(request: NextRequest) {
+  const { user, error: authError } = await requireUser(request);
+  if (authError) return authError;
+
+  const { schoolId, error: schoolError } = getSchoolScope(user, request);
+  if (schoolError) return schoolError;
+
   const result = validateQuery(request, querySchema);
   if (result.error) return result.error;
 
   const { date } = result.data;
 
-  const menuDay = await prisma.menuDay.findUnique({
-    where: { date: new Date(date) },
+  const menuDay = await prisma.menuDay.findFirst({
+    where: {
+      date: new Date(date),
+      weekMenu: { schoolId, status: "PUBLISHED" },
+    },
     include: {
       weekMenu: {
-        select: {
-          status: true,
-          year: true,
-          weekNumber: true,
-        },
+        select: { status: true, year: true, weekNumber: true },
       },
       items: {
         where: { status: { not: "CHANGED" } },
@@ -38,15 +45,13 @@ export async function GET(request: NextRequest) {
               tags: true,
             },
           },
-          _count: {
-            select: { votes: true },
-          },
+          _count: { select: { votes: true } },
         },
       },
     },
   });
 
-  if (!menuDay || menuDay.weekMenu.status !== "PUBLISHED") {
+  if (!menuDay) {
     return notFound("No published menu for this date");
   }
 

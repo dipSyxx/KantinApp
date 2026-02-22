@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireUser, requireRole } from "@/lib/auth";
 import { validateQuery } from "@/lib/validate";
+import { getSchoolScope } from "@/lib/school";
 
 const querySchema = z.object({
   from: z
@@ -20,8 +21,11 @@ export async function GET(request: NextRequest) {
   const { user, error: authError } = await requireUser(request);
   if (authError) return authError;
 
-  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN"]);
+  const roleError = requireRole(user!.role, ["CANTEEN_ADMIN", "SCHOOL_ADMIN", "SUPER_ADMIN"]);
   if (roleError) return roleError;
+
+  const { schoolId, error: schoolError } = getSchoolScope(user!, request);
+  if (schoolError) return schoolError;
 
   const result = validateQuery(request, querySchema);
   if (result.error) return result.error;
@@ -32,8 +36,9 @@ export async function GET(request: NextRequest) {
   if (from) dateFilter.gte = new Date(from);
   if (to) dateFilter.lte = new Date(to);
 
-  const dayFilter =
-    dateFilter.gte || dateFilter.lte ? { date: dateFilter } : undefined;
+  const dayFilter: Record<string, unknown> = {};
+  if (dateFilter.gte || dateFilter.lte) dayFilter.date = dateFilter;
+  dayFilter.weekMenu = { schoolId };
 
   const menuItems = await prisma.menuItem.findMany({
     where: { menuDay: dayFilter },
