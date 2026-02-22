@@ -130,7 +130,7 @@ model MenuItem {
   updatedAt DateTime   @updatedAt
 
   menuDay MenuDay @relation(fields: [menuDayId], references: [id], onDelete: Cascade)
-  dish    Dish    @relation(fields: [dishId], references: [id])
+  dish    Dish    @relation(fields: [dishId], references: [id], onDelete: Cascade)
   votes   Vote[]
 
   @@map("menu_items")
