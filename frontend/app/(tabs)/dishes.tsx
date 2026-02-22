@@ -90,7 +90,7 @@ export default function DishesScreen() {
     [appliedFilters],
   );
 
-  const listBottomPadding = tabBarHeight + insets.bottom + FLOATING_MENU_HEIGHT + 20;
+  const listBottomPadding = tabBarHeight + FLOATING_MENU_HEIGHT - 60;
   const gridItemWidth = Math.max(
     140,
     (windowWidth - GRID_HORIZONTAL_PADDING * 2 - GRID_GAP) / 2,

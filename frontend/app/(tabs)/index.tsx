@@ -132,7 +132,7 @@ export default function WeekMenuScreen() {
               colors={["#1B7A3D"]}
             />
           }
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: 40 }}
           stickySectionHeadersEnabled={false}
           onLayout={() => {
             // Auto-scroll to today's section
