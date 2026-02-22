@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Alert,
   FlatList,
-  Modal,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -16,6 +15,7 @@ import { useRegister, useVerify } from "@/api/hooks/useRegister";
 import { useLogin } from "@/api/hooks/useAuth";
 import { useAuth } from "@/context/AuthContext";
 import { useSchools } from "@/api/hooks/useSchools";
+import { BottomSheet } from "@/components/BottomSheet";
 import type { SchoolInfo } from "@/api/types";
 
 const ALLOWED_DOMAIN = "@innlandetfylke.no";
@@ -34,6 +34,7 @@ export default function RegisterScreen() {
   const [selectedSchool, setSelectedSchool] = useState<SchoolInfo | null>(null);
   const [schoolPickerOpen, setSchoolPickerOpen] = useState(false);
   const [schoolSearch, setSchoolSearch] = useState("");
+  const [schoolListAtTop, setSchoolListAtTop] = useState(true);
   const [formError, setFormError] = useState("");
 
   const [otpDigits, setOtpDigits] = useState<string[]>(
@@ -248,88 +249,96 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* School Picker Modal */}
-              <Modal
+              {/* School Picker Bottom Sheet */}
+              <BottomSheet
                 visible={schoolPickerOpen}
-                animationType="slide"
-                presentationStyle="pageSheet"
-                onRequestClose={() => setSchoolPickerOpen(false)}
+                enableSwipeDown={schoolListAtTop}
+                onClose={() => {
+                  setSchoolPickerOpen(false);
+                  setSchoolSearch("");
+                  setSchoolListAtTop(true);
+                }}
               >
-                <SafeAreaView className="flex-1 bg-white">
-                  <View className="px-4 pt-4 pb-2 border-b border-gray-200">
-                    <View className="flex-row items-center justify-between mb-3">
-                      <Text className="text-xl font-bold text-gray-900">
-                        Velg skole
-                      </Text>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setSchoolPickerOpen(false);
-                          setSchoolSearch("");
-                        }}
-                      >
-                        <Ionicons name="close" size={24} color="#6B7280" />
-                      </TouchableOpacity>
+                <View className="flex-1 bg-white">
+                  <View className="px-5 pt-3 pb-3 border-b border-gray-100">
+                    <Text className="text-center text-xl font-bold text-gray-900 mb-3">
+                      Velg skole
+                    </Text>
+                    <View className="flex-row items-center border border-gray-300 rounded-xl px-3 bg-gray-50">
+                      <Ionicons name="search" size={18} color="#9CA3AF" />
+                      <TextInput
+                        value={schoolSearch}
+                        onChangeText={setSchoolSearch}
+                        placeholder="Søk etter skole..."
+                        className="flex-1 px-2 py-3 text-base text-gray-900"
+                        placeholderTextColor="#999"
+                      />
+                      {schoolSearch.length > 0 && (
+                        <TouchableOpacity onPress={() => setSchoolSearch("")}>
+                          <Ionicons name="close-circle" size={18} color="#9CA3AF" />
+                        </TouchableOpacity>
+                      )}
                     </View>
-                    <TextInput
-                      value={schoolSearch}
-                      onChangeText={setSchoolSearch}
-                      placeholder="Søk etter skole..."
-                      autoFocus
-                      className="border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900 bg-gray-50"
-                      placeholderTextColor="#999"
-                    />
                   </View>
                   <FlatList
                     data={filteredSchools}
                     keyExtractor={(item) => item.id}
+                    keyboardShouldPersistTaps="handled"
+                    scrollEventThrottle={16}
+                    onScroll={(e) => setSchoolListAtTop(e.nativeEvent.contentOffset.y <= 0)}
                     contentContainerStyle={{ paddingBottom: 40 }}
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
-                        onPress={() => {
-                          setSelectedSchool(item);
-                          setSchoolPickerOpen(false);
-                          setSchoolSearch("");
-                        }}
-                        className={`px-5 py-4 border-b border-gray-100 flex-row items-center ${
-                          selectedSchool?.id === item.id ? "bg-emerald-50" : ""
-                        }`}
-                      >
-                        <Ionicons
-                          name="school-outline"
-                          size={20}
-                          color={
-                            selectedSchool?.id === item.id
-                              ? "#1B7A3D"
-                              : "#9CA3AF"
-                          }
-                        />
-                        <Text
-                          className={`text-base ml-3 ${
-                            selectedSchool?.id === item.id
-                              ? "text-emerald-700 font-semibold"
-                              : "text-gray-900"
+                    renderItem={({ item }) => {
+                      const selected = selectedSchool?.id === item.id;
+                      return (
+                        <TouchableOpacity
+                          onPress={() => {
+                            setSelectedSchool(item);
+                            setSchoolPickerOpen(false);
+                            setSchoolSearch("");
+                          }}
+                          activeOpacity={0.7}
+                          className={`mx-3 mt-2 px-4 py-3.5 rounded-2xl flex-row items-center ${
+                            selected ? "bg-emerald-50 border border-emerald-200" : "bg-gray-50"
                           }`}
                         >
-                          {item.name}
-                        </Text>
-                        {selectedSchool?.id === item.id && (
-                          <Ionicons
-                            name="checkmark-circle"
-                            size={20}
-                            color="#1B7A3D"
-                            style={{ marginLeft: "auto" }}
-                          />
-                        )}
-                      </TouchableOpacity>
-                    )}
+                          <View
+                            className={`w-9 h-9 rounded-full items-center justify-center ${
+                              selected ? "bg-brand-green" : "bg-gray-200"
+                            }`}
+                          >
+                            <Ionicons
+                              name="school"
+                              size={18}
+                              color={selected ? "#FFFFFF" : "#6B7280"}
+                            />
+                          </View>
+                          <Text
+                            className={`text-base ml-3 flex-1 ${
+                              selected
+                                ? "text-emerald-700 font-semibold"
+                                : "text-gray-900"
+                            }`}
+                          >
+                            {item.name}
+                          </Text>
+                          {selected && (
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={22}
+                              color="#1B7A3D"
+                            />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    }}
                     ListEmptyComponent={
                       <Text className="text-gray-400 text-center py-8">
                         Ingen skoler funnet
                       </Text>
                     }
                   />
-                </SafeAreaView>
-              </Modal>
+                </View>
+              </BottomSheet>
 
               {/* Email */}
               <View className="mb-3">

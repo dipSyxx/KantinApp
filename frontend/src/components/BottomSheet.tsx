@@ -16,7 +16,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
-type DishesFilterBottomSheetProps = {
+type BottomSheetProps = {
   visible: boolean;
   enableSwipeDown?: boolean;
   onClose: () => void;
@@ -37,12 +37,12 @@ const SWIPE_CLOSE_ANIMATION_DURATION = 120;
 const SWIPE_OPEN_ANIMATION_DURATION = 220;
 const SWIPE_HIDE_ANIMATION_DURATION = 180;
 
-export function DishesFilterBottomSheet({
+export function BottomSheet({
   visible,
   enableSwipeDown = true,
   onClose,
   children,
-}: DishesFilterBottomSheetProps) {
+}: BottomSheetProps) {
   const insets = useSafeAreaInsets();
   const { height: windowHeight } = useWindowDimensions();
   const progress = useSharedValue(visible ? 1 : 0);

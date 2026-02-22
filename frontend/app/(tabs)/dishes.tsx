@@ -12,7 +12,7 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDishes } from "@/api/hooks/useDishes";
 import type { CatalogDish } from "@/api/types";
-import { DishesFilterBottomSheet } from "@/components/DishesFilterBottomSheet";
+import { BottomSheet } from "@/components/BottomSheet";
 import { DishCatalogCard } from "@/components/DishCatalogCard";
 import { DishesFilterBottomSheetContent } from "@/components/DishesFilterBottomSheetContent";
 import { DishesFloatingMenu } from "@/components/DishesFloatingMenu";
@@ -268,7 +268,7 @@ export default function DishesScreen() {
             onToggleView={handleToggleViewMode}
           />
 
-          <DishesFilterBottomSheet
+          <BottomSheet
             visible={isDrawerOpen}
             enableSwipeDown={isSheetAtTop}
             onClose={handleCloseDrawer}
@@ -306,7 +306,7 @@ export default function DishesScreen() {
                 }))
               }
             />
-          </DishesFilterBottomSheet>
+          </BottomSheet>
         </View>
       )}
     </SafeAreaView>
